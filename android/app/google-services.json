@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "96385477704",
+    "project_id": "chat-gpt-for-students",
+    "storage_bucket": "chat-gpt-for-students.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:96385477704:android:a71f5ce8488db9bd7f7c7d",
+        "android_client_info": {
+          "package_name": "com.socialfaculty.school_expo"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "96385477704-re83cm9vsnl66mit8oi5lc7mtrugr190.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCi_nlQ_iPaokKfk-Q5xLNJf2tzGvr1W8s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "96385477704-re83cm9vsnl66mit8oi5lc7mtrugr190.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

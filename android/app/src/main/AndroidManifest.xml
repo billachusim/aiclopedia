@@ -1,9 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.chatgpt_course">
-   <application
-        android:label="chatgpt_course"
+    package="com.socialfaculty.school_expo">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <application
+        android:label="School Expo"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-2404156870680632~1914595123"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -1,27 +1,31 @@
-import 'dart:developer';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:school_expo/constants/constants.dart';
-import 'package:school_expo/providers/chats_provider.dart';
-import 'package:school_expo/services/services.dart';
-import 'package:school_expo/widgets/chat_widget.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
 import 'package:provider/provider.dart';
 
-import '../providers/models_provider.dart';
+import '../constants/constants.dart';
+import '../providers/chats_provider.dart';
 import '../services/ad_state.dart';
 import '../services/assets_manager.dart';
-import '../widgets/text_widget.dart';
+import '../services/services.dart';
+import '../widgets/image_widget.dart';
 
-class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key});
+class ImageScreen extends StatefulWidget {
+  const ImageScreen({super.key});
 
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+  _ImageScreenState createState() => _ImageScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
-  bool _isTyping = false;
+class _ImageScreenState extends State<ImageScreen> {
+  String generatedImageUrl = '';
+  List<Widget> chatList = [];
+
+  bool isTyping = false;
 
   late TextEditingController textEditingController;
   late ScrollController _listScrollController;
@@ -42,7 +46,7 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
-  late BannerAd chatScreenTopBanner;
+  late BannerAd imageScreenTopBanner;
 
   @override
   void didChangeDependencies() {
@@ -52,9 +56,9 @@ class _ChatScreenState extends State<ChatScreen> {
     // Implement a top location banner ad unit.
     adState.initialization.then((status) {
       setState(() {
-        chatScreenTopBanner = BannerAd(
+        imageScreenTopBanner = BannerAd(
             size: AdSize.banner,
-            adUnitId: adState.chatScreenTopBannerAdUnitId,
+            adUnitId: adState.imageScreenTopBannerAdUnitId,
             request: AdRequest(),
             listener: BannerAdListener(
               onAdFailedToLoad: (ad, error) {
@@ -70,7 +74,6 @@ class _ChatScreenState extends State<ChatScreen> {
   // List<ChatModel> chatList = [];
   @override
   Widget build(BuildContext context) {
-    final modelsProvider = Provider.of<ModelsProvider>(context);
     final chatProvider = Provider.of<ChatProvider>(context);
     return Scaffold(
       appBar: AppBar(
@@ -93,30 +96,33 @@ class _ChatScreenState extends State<ChatScreen> {
         child: Column(
           children: [
             // Top ad unit is here
-            if(chatScreenTopBanner == null)
+            if(imageScreenTopBanner == null)
               SizedBox(height: 70)
             else
               SizedBox(
                 height: 60,
-                child: AdWidget(ad: chatScreenTopBanner),
+                child: AdWidget(ad: imageScreenTopBanner),
               ),
+
             Flexible(
               child: ListView.builder(
                   controller: _listScrollController,
                   itemCount: chatProvider.getChatList.length, //chatList.length,
                   itemBuilder: (context, index) {
-                    return ChatWidget(
-                      msg: chatProvider
-                          .getChatList[index].msg, // chatList[index].msg,
-                      chatIndex: chatProvider.getChatList[index]
-                          .chatIndex, //chatList[index].chatIndex,
-                    );
-                  }),
+                    return Container();
+                  }
+                  ),
             ),
-            if (_isTyping) ...[
+            if (isTyping) ...[
               const SpinKitThreeBounce(
                 color: Colors.white,
                 size: 18,
+              ),
+              Text("Loading image of ${textEditingController.text}",
+              style: TextStyle(
+                fontStyle: FontStyle.italic,
+                color: Colors.grey,
+              ),
               ),
             ],
             const SizedBox(
@@ -134,9 +140,17 @@ class _ChatScreenState extends State<ChatScreen> {
                         style: const TextStyle(color: Colors.white),
                         controller: textEditingController,
                         onSubmitted: (value) async {
-                          await sendMessageFCT(
-                              modelsProvider: modelsProvider,
-                              chatProvider: chatProvider);
+                          setState(() {
+                            isTyping = true;
+                          });
+                          await generateImage(textEditingController.text);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => ImageWidget(msg: generatedImageUrl)),
+                          );
+                          textEditingController.clear();
+                          isTyping = false;
                         },
                         decoration: const InputDecoration.collapsed(
                             hintText: "What's the second law of motion?",
@@ -145,9 +159,17 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                     IconButton(
                         onPressed: () async {
-                          await sendMessageFCT(
-                              modelsProvider: modelsProvider,
-                              chatProvider: chatProvider);
+                          setState(() {
+                            isTyping = true;
+                          });
+                          await generateImage(textEditingController.text);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => ImageWidget(msg: generatedImageUrl)),
+                          );
+                          textEditingController.clear();
+                          isTyping = false;
                         },
                         icon: const Icon(
                           Icons.send,
@@ -170,60 +192,26 @@ class _ChatScreenState extends State<ChatScreen> {
         curve: Curves.easeOut);
   }
 
-  Future<void> sendMessageFCT(
-      {required ModelsProvider modelsProvider,
-      required ChatProvider chatProvider}) async {
-    if (_isTyping) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: TextWidget(
-            label: "You cant send multiple messages at a time",
-          ),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-    if (textEditingController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: TextWidget(
-            label: "Please type a message",
-          ),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-    try {
-      String msg = textEditingController.text;
+
+
+  Future<void> generateImage(String userInput) async {
+    final url = Uri.parse('https://api.openai.com/v1/images/generations');
+    final headers = {
+      'Authorization': 'Bearer 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',
+      'Content-Type': 'application/json'
+    };
+    final body = {'model': 'image-alpha-001', 'prompt': userInput, 'num_images': 1, 'size': '512x512'};
+    final response = await http.post(url, headers: headers, body: jsonEncode(body));
+    final data = jsonDecode(response.body);
+    if (data != null && data['data'] != null && data['data'].isNotEmpty) {
       setState(() {
-        _isTyping = true;
-        // chatList.add(ChatModel(msg: textEditingController.text, chatIndex: 0));
-        chatProvider.addUserMessage(msg: msg);
-        textEditingController.clear();
-        focusNode.unfocus();
+        generatedImageUrl = data['data'][0]['url'];
       });
-      await chatProvider.sendMessageAndGetAnswers(
-          msg: msg, chosenModelId: modelsProvider.getCurrentModel);
-      // chatList.addAll(await ApiService.sendMessage(
-      //   message: textEditingController.text,
-      //   modelId: modelsProvider.getCurrentModel,
-      // ));
-      setState(() {});
-    } catch (error) {
-      log("error $error");
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: TextWidget(
-          label: error.toString(),
-        ),
-        backgroundColor: Colors.red,
-      ));
-    } finally {
-      setState(() {
-        scrollListToEND();
-        _isTyping = false;
-      });
+    } else {
+      if (kDebugMode) {
+        print('Error generating image: $data');
+      }
     }
   }
+
 }
