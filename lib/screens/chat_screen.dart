@@ -1,9 +1,11 @@
 import 'dart:developer';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:school_expo/constants/constants.dart';
-import 'package:school_expo/providers/chats_provider.dart';
-import 'package:school_expo/services/services.dart';
-import 'package:school_expo/widgets/chat_widget.dart';
+import 'package:AiClopedia/constants/constants.dart';
+import 'package:AiClopedia/providers/chats_provider.dart';
+import 'package:AiClopedia/services/services.dart';
+import 'package:AiClopedia/widgets/chat_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:provider/provider.dart';
@@ -11,6 +13,7 @@ import 'package:provider/provider.dart';
 import '../providers/models_provider.dart';
 import '../services/ad_state.dart';
 import '../services/assets_manager.dart';
+import '../services/firebaseServices.dart';
 import '../widgets/text_widget.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -21,6 +24,9 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
+  final FirebaseServices firebaseServices = FirebaseServices();
+  var currentUser = FirebaseAuth.instance.currentUser;
+
   bool _isTyping = false;
 
   late TextEditingController textEditingController;
@@ -77,7 +83,7 @@ class _ChatScreenState extends State<ChatScreen> {
         elevation: 2,
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
-          child: Image.asset(AssetsManager.openaiLogo),
+          child: Image.asset("assets/images/aiclopedia.png"),
         ),
         title: const Text("Ask Anything"),
         actions: [
@@ -137,6 +143,16 @@ class _ChatScreenState extends State<ChatScreen> {
                           await sendMessageFCT(
                               modelsProvider: modelsProvider,
                               chatProvider: chatProvider);
+                          final question = textEditingController.text.trim();
+                          final user = await firebaseServices.getUserInfo();
+                          if (question.isNotEmpty) {
+                            await firebaseServices.saveQuestion(user, question);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Question saved'),
+                              ),
+                            );
+                          }
                         },
                         decoration: const InputDecoration.collapsed(
                             hintText: "What's the second law of motion?",
@@ -145,6 +161,17 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                     IconButton(
                         onPressed: () async {
+                          final question = textEditingController.text.trim();
+                          final user = await firebaseServices.getUserInfo();
+                          if (question.isNotEmpty) {
+                            await firebaseServices.saveQuestion(user, question);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Question saved'),
+                              ),
+                            );
+                          }
+
                           await sendMessageFCT(
                               modelsProvider: modelsProvider,
                               chatProvider: chatProvider);

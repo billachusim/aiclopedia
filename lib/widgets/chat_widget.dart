@@ -1,6 +1,6 @@
 import 'package:animated_text_kit/animated_text_kit.dart';
-import 'package:school_expo/constants/constants.dart';
-import 'package:school_expo/services/assets_manager.dart';
+import 'package:AiClopedia/constants/constants.dart';
+import 'package:AiClopedia/services/assets_manager.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/src/widgets/container.dart';
@@ -27,7 +27,7 @@ class ChatWidget extends StatelessWidget {
                 Image.asset(
                   chatIndex == 0
                       ? AssetsManager.userImage
-                      : AssetsManager.botImage,
+                      : "assets/images/aiclopedia.png",
                   height: 30,
                   width: 30,
                 ),

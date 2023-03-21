@@ -80,7 +80,7 @@ class _ImageScreenState extends State<ImageScreen> {
         elevation: 2,
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
-          child: Image.asset(AssetsManager.openaiLogo),
+          child: Image.asset("assets/images/aiclopedia.png"),
         ),
         title: const Text("Ask Anything"),
         actions: [

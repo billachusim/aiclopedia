@@ -1,7 +1,10 @@
 import 'dart:math' as math;
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:school_expo/screens/home_screen.dart';
-import 'package:school_expo/widgets/bottom_nav.dart';
+import 'package:AiClopedia/screens/home_screen.dart';
+import 'package:AiClopedia/widgets/bottom_nav.dart';
+
+import 'login/login.dart';
 
 class SplashPage extends StatefulWidget {
   _SplashPageState createState() => _SplashPageState();
@@ -10,6 +13,8 @@ class SplashPage extends StatefulWidget {
 class _SplashPageState extends State<SplashPage>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
+  var currentUser = FirebaseAuth.instance.currentUser;
+
 
   @override
   void initState() {
@@ -19,11 +24,19 @@ class _SplashPageState extends State<SplashPage>
       ..forward()
       ..addStatusListener((status) {
         if (status == AnimationStatus.completed) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => BottomNavBar()),
-          );
+          if (currentUser == null) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => LoginPage()),
+            );
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => BottomNavBar()),
+            );
+          }
         }
       });
   }
@@ -47,7 +60,7 @@ class _SplashPageState extends State<SplashPage>
                     );
                   },
                   child: Image.asset(
-                    "assets/images/openai_logo.jpg",
+                    "assets/images/aiclopedia.png",
                     height: 120,
                     width: 120,
                   ),

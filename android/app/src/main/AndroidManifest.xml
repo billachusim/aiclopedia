@@ -1,10 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.socialfaculty.school_expo">
+    package="com.socialfaculty.AiClopedia">
     <uses-permission android:name="android.permission.INTERNET" />
     <application
-        android:label="School Expo"
+        android:label="AiClopedia"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/launcher_icon">
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-2404156870680632~1914595123"/>

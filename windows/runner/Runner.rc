@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.socialfaculty" "\0"
-            VALUE "FileDescription", "school_expo" "\0"
+            VALUE "FileDescription", "AiClopedia" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "school_expo" "\0"
+            VALUE "InternalName", "AiClopedia" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2023 com.socialfaculty. All rights reserved." "\0"
-            VALUE "OriginalFilename", "school_expo.exe" "\0"
-            VALUE "ProductName", "school_expo" "\0"
+            VALUE "OriginalFilename", "AiClopedia.exe" "\0"
+            VALUE "ProductName", "AiClopedia" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

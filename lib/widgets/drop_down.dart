@@ -1,6 +1,6 @@
-import 'package:school_expo/providers/models_provider.dart';
-import 'package:school_expo/services/api_service.dart';
-import 'package:school_expo/widgets/text_widget.dart';
+import 'package:AiClopedia/providers/models_provider.dart';
+import 'package:AiClopedia/services/api_service.dart';
+import 'package:AiClopedia/widgets/text_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:provider/provider.dart';

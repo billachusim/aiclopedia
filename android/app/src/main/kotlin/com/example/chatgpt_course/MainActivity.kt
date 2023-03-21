@@ -1,4 +1,4 @@
-package com.socialfaculty.school_expo
+package com.socialfaculty.AiClopedia
 
 import io.flutter.embedding.android.FlutterActivity
 

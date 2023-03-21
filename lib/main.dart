@@ -1,10 +1,10 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:school_expo/providers/models_provider.dart';
+import 'package:AiClopedia/providers/models_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:school_expo/screens/splash_screen.dart';
-import 'package:school_expo/services/ad_state.dart';
+import 'package:AiClopedia/screens/splash_screen.dart';
+import 'package:AiClopedia/services/ad_state.dart';
 
 import 'constants/constants.dart';
 import 'providers/chats_provider.dart';
@@ -37,12 +37,12 @@ class MyApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
-        title: 'School Expo',
+        title: 'AiClopedia',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
             scaffoldBackgroundColor: scaffoldBackgroundColor,
             appBarTheme: AppBarTheme(
-              color: cardColor,
+              color: Colors.green,
             )),
         home: SplashPage(),
       ),

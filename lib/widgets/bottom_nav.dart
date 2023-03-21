@@ -1,5 +1,12 @@
+import 'package:AiClopedia/screens/user_activities.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:school_expo/screens/home_screen.dart';
+import 'package:AiClopedia/screens/chat_screen.dart';
+import 'package:AiClopedia/screens/home_screen.dart';
+import 'package:AiClopedia/screens/image_screen.dart';
+import '../models/userModel.dart';
+import '../services/firebaseServices.dart';
 import '../services/helper.dart';
 
 
@@ -31,14 +38,15 @@ class BottomNavBar extends StatefulWidget {
 }
 
 class _BottomNavbarState extends State<BottomNavBar> {
-  int _select = 0;
+  final FirebaseServices firebaseServices = FirebaseServices();
+  var currentUser = FirebaseAuth.instance.currentUser;
+  int _select = 1;
 
   final screens = [
     const Homepage(),
-    //CartScreen(),
-    //OrderScreen(title: 'Orders'),
-    //WalletScreen(transactions: [],),
-    //const ProfileScreen(),
+    ChatScreen(),
+    ImageScreen(),
+    ActivitiesScreen()
   ];
 
   static Image generateIcon(String path) {
@@ -53,22 +61,22 @@ class _BottomNavbarState extends State<BottomNavBar> {
     const BottomNavigationBarItem(
       icon: Icon(Icons.home_filled),
       activeIcon: Icon(Icons.home_filled),
-      label: 'Market',
+      label: 'Home',
     ),
     const BottomNavigationBarItem(
-      icon: Icon(Icons.shopping_cart),
-      activeIcon: Icon(Icons.shopping_cart),
-      label: 'Cart',
+      icon: Icon(Icons.question_answer_outlined),
+      activeIcon: Icon(Icons.question_answer_rounded),
+      label: 'Ask AI',
     ),
     const BottomNavigationBarItem(
-      icon: Icon(Icons.notifications_none),
-      activeIcon: Icon(Icons.notifications_none),
-      label: 'Orders',
+      icon: Icon(Icons.image_outlined),
+      activeIcon: Icon(Icons.image_rounded),
+      label: 'Generate Image',
     ),
     const BottomNavigationBarItem(
-      icon: Icon(Icons.notifications_none),
-      activeIcon: Icon(Icons.notifications_none),
-      label: 'Wallet',
+      icon: Icon(Icons.calendar_month_outlined),
+      activeIcon: Icon(Icons.calendar_month_rounded),
+      label: 'Activities',
     ),
     // const BottomNavigationBarItem(
     //   icon: Icon(Icons.person),
@@ -77,9 +85,17 @@ class _BottomNavbarState extends State<BottomNavBar> {
     // ),
   ];
 
+
   @override
-  void setState(VoidCallback fn) {
-    super.setState(fn);
+  void initState() {
+    super.initState();
+  }
+
+
+
+  @override
+  dispose() {
+    super.dispose();
   }
 
   @override
@@ -100,7 +116,7 @@ class _BottomNavbarState extends State<BottomNavBar> {
           fontWeight: FontWeight.normal,
           fontSize: 10,
         ),
-        selectedItemColor: const Color(0xFFFFC402),
+        selectedItemColor: const Color(0xFF097E18),
         unselectedItemColor: const Color(0xFF9E9E9E),
       ),
     );

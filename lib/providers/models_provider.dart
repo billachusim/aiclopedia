@@ -1,5 +1,5 @@
-import 'package:school_expo/models/models_model.dart';
-import 'package:school_expo/services/api_service.dart';
+import 'package:AiClopedia/models/models_model.dart';
+import 'package:AiClopedia/services/api_service.dart';
 import 'package:flutter/cupertino.dart';
 
 class ModelsProvider with ChangeNotifier {
