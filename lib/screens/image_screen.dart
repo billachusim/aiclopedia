@@ -12,7 +12,9 @@ import '../providers/chats_provider.dart';
 import '../services/ad_state.dart';
 import '../services/assets_manager.dart';
 import '../services/services.dart';
+import '../widgets/bottom_nav.dart';
 import '../widgets/image_widget.dart';
+import 'home_screen.dart';
 
 class ImageScreen extends StatefulWidget {
   const ImageScreen({super.key});
@@ -75,111 +77,121 @@ class _ImageScreenState extends State<ImageScreen> {
   @override
   Widget build(BuildContext context) {
     final chatProvider = Provider.of<ChatProvider>(context);
-    return Scaffold(
-      appBar: AppBar(
-        elevation: 2,
-        leading: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Image.asset("assets/images/aiclopedia.png"),
-        ),
-        title: const Text("Ask Anything"),
-        actions: [
-          IconButton(
-            onPressed: () async {
-              await Services.showModalSheet(context: context);
-            },
-            icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
+    return WillPopScope(
+      onWillPop: (){
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => BottomNavBar()),
+        );
+        return Future.value(false);
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          elevation: 2,
+          leading: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Image.asset("assets/images/aiclo.png"),
           ),
-        ],
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Top ad unit is here
-            if(imageScreenTopBanner == null)
-              SizedBox(height: 70)
-            else
-              SizedBox(
-                height: 60,
-                child: AdWidget(ad: imageScreenTopBanner),
-              ),
-
-            Flexible(
-              child: ListView.builder(
-                  controller: _listScrollController,
-                  itemCount: chatProvider.getChatList.length, //chatList.length,
-                  itemBuilder: (context, index) {
-                    return Container();
-                  }
-                  ),
-            ),
-            if (isTyping) ...[
-              const SpinKitThreeBounce(
-                color: Colors.white,
-                size: 18,
-              ),
-              Text("Loading image of ${textEditingController.text}",
-              style: TextStyle(
-                fontStyle: FontStyle.italic,
-                color: Colors.grey,
-              ),
-              ),
-            ],
-            const SizedBox(
-              height: 15,
-            ),
-            Material(
-              color: cardColor,
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        focusNode: focusNode,
-                        style: const TextStyle(color: Colors.white),
-                        controller: textEditingController,
-                        onSubmitted: (value) async {
-                          setState(() {
-                            isTyping = true;
-                          });
-                          await generateImage(textEditingController.text);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => ImageWidget(msg: generatedImageUrl)),
-                          );
-                          textEditingController.clear();
-                          isTyping = false;
-                        },
-                        decoration: const InputDecoration.collapsed(
-                            hintText: "What's the second law of motion?",
-                            hintStyle: TextStyle(color: Colors.grey)),
-                      ),
-                    ),
-                    IconButton(
-                        onPressed: () async {
-                          setState(() {
-                            isTyping = true;
-                          });
-                          await generateImage(textEditingController.text);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => ImageWidget(msg: generatedImageUrl)),
-                          );
-                          textEditingController.clear();
-                          isTyping = false;
-                        },
-                        icon: const Icon(
-                          Icons.send,
-                          color: Colors.white,
-                        ))
-                  ],
-                ),
-              ),
+          title: const Text("Ask Anything"),
+          actions: [
+            IconButton(
+              onPressed: () async {
+                await Services.showModalSheet(context: context);
+              },
+              icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
             ),
           ],
+        ),
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Top ad unit is here
+              if(imageScreenTopBanner == null)
+                SizedBox(height: 70)
+              else
+                SizedBox(
+                  height: 60,
+                  child: AdWidget(ad: imageScreenTopBanner),
+                ),
+
+              Flexible(
+                child: ListView.builder(
+                    controller: _listScrollController,
+                    itemCount: chatProvider.getChatList.length, //chatList.length,
+                    itemBuilder: (context, index) {
+                      return Container();
+                    }
+                    ),
+              ),
+              if (isTyping) ...[
+                const SpinKitThreeBounce(
+                  color: Colors.white,
+                  size: 18,
+                ),
+                Text("Loading image of ${textEditingController.text}",
+                style: TextStyle(
+                  fontStyle: FontStyle.italic,
+                  color: Colors.grey,
+                ),
+                ),
+              ],
+              const SizedBox(
+                height: 15,
+              ),
+              Material(
+                color: cardColor,
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          focusNode: focusNode,
+                          style: const TextStyle(color: Colors.white),
+                          controller: textEditingController,
+                          onSubmitted: (value) async {
+                            setState(() {
+                              isTyping = true;
+                            });
+                            await generateImage(textEditingController.text);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => ImageWidget(msg: generatedImageUrl)),
+                            );
+                            textEditingController.clear();
+                            isTyping = false;
+                          },
+                          decoration: const InputDecoration.collapsed(
+                              hintText: "What's the second law of motion?",
+                              hintStyle: TextStyle(color: Colors.grey)),
+                        ),
+                      ),
+                      IconButton(
+                          onPressed: () async {
+                            setState(() {
+                              isTyping = true;
+                            });
+                            await generateImage(textEditingController.text);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => ImageWidget(msg: generatedImageUrl)),
+                            );
+                            textEditingController.clear();
+                            isTyping = false;
+                          },
+                          icon: const Icon(
+                            Icons.send,
+                            color: Colors.white,
+                          ))
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -197,7 +209,7 @@ class _ImageScreenState extends State<ImageScreen> {
   Future<void> generateImage(String userInput) async {
     final url = Uri.parse('https://api.openai.com/v1/images/generations');
     final headers = {
-      'Authorization': 'Bearer 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',
+      'Authorization': 'Bearer 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',
       'Content-Type': 'application/json'
     };
     final body = {'model': 'image-alpha-001', 'prompt': userInput, 'num_images': 1, 'size': '512x512'};

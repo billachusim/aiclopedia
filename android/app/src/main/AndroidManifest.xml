@@ -2,12 +2,12 @@
     package="com.socialfaculty.AiClopedia">
     <uses-permission android:name="android.permission.INTERNET" />
     <application
-        android:label="AiClopedia"
+        android:label="Ai Clopedia"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-2404156870680632~1914595123"/>
+            android:value="ca-app-pub-2404156870680632~3412670740"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"

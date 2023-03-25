@@ -44,7 +44,7 @@ class FirebaseServices extends ChangeNotifier {
       final timeLastUnlocked = FieldValue.serverTimestamp();
       final timeRegistered = FieldValue.serverTimestamp();
       final userType = "REGULAR";
-      final nicknmae = _nickname;
+      final nickname = _nickname;
       final userId = _user.user?.uid;
       final nameOfSchool = _nameOfSchool;
       FirebaseFirestore.instance

@@ -1,17 +1,14 @@
 import 'package:AiClopedia/widgets/auto_scroll_container.dart';
-import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 import 'package:AiClopedia/screens/chat_screen.dart';
-import 'package:AiClopedia/screens/image_screen.dart';
 import 'package:AiClopedia/services/helper.dart';
 
 import '../models/questionModel.dart';
 import '../services/ad_state.dart';
-import '../services/assets_manager.dart';
 import '../services/services.dart';
 import 'login/login.dart';
 
@@ -108,9 +105,9 @@ class _HomepageState extends State<Homepage> {
           elevation: 2,
           leading: Padding(
             padding: const EdgeInsets.all(8.0),
-            child: Image.asset("assets/images/aiclopedia.png"),
+            child: Image.asset("assets/images/aiclo.png"),
           ),
-          title: const Text("AiClopedia"),
+          title: const Text("Ai Clopedia"),
           actions: [
             IconButton(
               onPressed: () async {
@@ -130,7 +127,7 @@ class _HomepageState extends State<Homepage> {
                   height: MediaQuery.of(context).size.height,
                   width: MediaQuery.of(context).size.width,
                   child: Image.asset(
-                    "assets/images/amy.jpeg",
+                    "assets/images/ClaireDark.png",
                     fit: BoxFit.fill,
                   ),
                 ),

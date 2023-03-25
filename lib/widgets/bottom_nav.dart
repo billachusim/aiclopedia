@@ -1,11 +1,10 @@
 import 'package:AiClopedia/screens/user_activities.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:AiClopedia/screens/chat_screen.dart';
 import 'package:AiClopedia/screens/home_screen.dart';
 import 'package:AiClopedia/screens/image_screen.dart';
-import '../models/userModel.dart';
+import 'package:flutter/services.dart';
 import '../services/firebaseServices.dart';
 import '../services/helper.dart';
 
@@ -40,7 +39,7 @@ class BottomNavBar extends StatefulWidget {
 class _BottomNavbarState extends State<BottomNavBar> {
   final FirebaseServices firebaseServices = FirebaseServices();
   var currentUser = FirebaseAuth.instance.currentUser;
-  int _select = 1;
+  int _select = 0;
 
   final screens = [
     const Homepage(),
@@ -49,13 +48,6 @@ class _BottomNavbarState extends State<BottomNavBar> {
     ActivitiesScreen()
   ];
 
-  static Image generateIcon(String path) {
-    return Image.asset(
-      '${ImageLoader.rootPaht}/buttomnav/$path',
-      width: 24,
-      height: 24,
-    );
-  }
 
   final List<BottomNavigationBarItem> items = [
     const BottomNavigationBarItem(
@@ -101,23 +93,37 @@ class _BottomNavbarState extends State<BottomNavBar> {
   @override
   Widget build(BuildContext context) {
     SizeConfig().init(context);
-    return Scaffold(
-      body: screens[_select],
-      bottomNavigationBar: BottomNavigationBar(
-        items: items,
-        onTap: ((value) => setState(() => _select = value)),
-        currentIndex: _select,
-        selectedLabelStyle: const TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 10,
+    return WillPopScope(
+      onWillPop: () {
+        if (_select != 0) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => BottomNavBar()),
+          );
+        } else {
+          SystemNavigator.pop();
+        }
+        return Future.value(false);
+      },
+      child: Scaffold(
+        body: screens[_select],
+        bottomNavigationBar: BottomNavigationBar(
+          items: items,
+          onTap: ((value) => setState(() => _select = value)),
+          currentIndex: _select,
+          selectedLabelStyle: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 10,
+          ),
+          showUnselectedLabels: true,
+          unselectedLabelStyle: const TextStyle(
+            fontWeight: FontWeight.normal,
+            fontSize: 10,
+          ),
+          selectedItemColor: const Color(0xFF097E18),
+          unselectedItemColor: const Color(0xFF9E9E9E),
         ),
-        showUnselectedLabels: true,
-        unselectedLabelStyle: const TextStyle(
-          fontWeight: FontWeight.normal,
-          fontSize: 10,
-        ),
-        selectedItemColor: const Color(0xFF097E18),
-        unselectedItemColor: const Color(0xFF9E9E9E),
       ),
     );
   }

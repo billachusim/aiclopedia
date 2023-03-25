@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:provider/provider.dart';
+import '../../services/ad_state.dart';
 import '../../services/button.dart';
 import '../../services/firebaseServices.dart';
 import '../../widgets/bottom_nav.dart';
@@ -24,6 +27,31 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
+  late BannerAd loginBottomBanner;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final adState = Provider.of<AdState>(context);
+
+    // Implement a bottom location banner ad unit.
+    adState.initialization.then((status) {
+      setState(() {
+        loginBottomBanner = BannerAd(
+            size: AdSize.banner,
+            adUnitId: adState.loginBottomBannerAdUnitId,
+            request: AdRequest(),
+            listener: BannerAdListener(
+              onAdFailedToLoad: (ad, error) {
+                ad.dispose();
+              },
+            )
+        )
+          ..load();
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -41,22 +69,39 @@ class _LoginPageState extends State<LoginPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
                 SizedBox(height: 20.0),
-                Image.asset("assets/images/amy.jpeg",
-                    width: 150, height: 150),
-                Text(
-                  'Login into your Account',
-                  style: TextStyle(
-                    fontSize: 24.0,
-                    fontWeight: FontWeight.bold,
+                Center(
+                  child: Image.asset("assets/images/aiclopedia.png",
+                      width: 120, height: 120),
+                ),
+                SizedBox(height: 20.0),
+                Center(
+                  child: Text(
+                    'Login To Your Account',
+                    style: TextStyle(
+                      fontSize: 25.0,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
                 SizedBox(height: 50.0),
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
+                  style: TextStyle(
+                    color: Colors.white,
+                  ),
+                  cursorColor: Colors.white,
                   decoration: InputDecoration(
                     labelText: 'Email',
-                    border: OutlineInputBorder(),
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.white,
+                      ),
+                    ),
+                    labelStyle: TextStyle(
+                      color: Colors.white,
+                    ),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -69,9 +114,20 @@ class _LoginPageState extends State<LoginPage> {
                 TextFormField(
                   controller: _passwordController,
                   obscureText: true,
+                  style: TextStyle(
+                    color: Colors.white,
+                  ),
+                  cursorColor: Colors.white,
                   decoration: InputDecoration(
                     labelText: 'Password',
-                    border: OutlineInputBorder(),
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.white,
+                      ),
+                    ),
+                    labelStyle: TextStyle(
+                      color: Colors.white,
+                    ),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -112,7 +168,7 @@ class _LoginPageState extends State<LoginPage> {
                     );
                     },
                 ),
-                SizedBox(height: 16.0),
+                SizedBox(height: 30.0),
                 DefaultButton(
                   text: 'Register',
                   press:  () {
@@ -123,6 +179,15 @@ class _LoginPageState extends State<LoginPage> {
                     );
                     },
                 ),
+                SizedBox(height: 10.0),
+                // Top ad unit is here
+                if(loginBottomBanner == null)
+                  SizedBox(height: 70)
+                else
+                  SizedBox(
+                    height: 60,
+                    child: AdWidget(ad: loginBottomBanner),
+                  ),
 
               ],
             ),

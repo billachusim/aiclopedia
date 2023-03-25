@@ -1,5 +1,5 @@
 import 'dart:developer';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:AiClopedia/widgets/bottom_nav.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:AiClopedia/constants/constants.dart';
@@ -12,9 +12,9 @@ import 'package:provider/provider.dart';
 
 import '../providers/models_provider.dart';
 import '../services/ad_state.dart';
-import '../services/assets_manager.dart';
 import '../services/firebaseServices.dart';
 import '../widgets/text_widget.dart';
+import 'home_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -78,113 +78,123 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     final modelsProvider = Provider.of<ModelsProvider>(context);
     final chatProvider = Provider.of<ChatProvider>(context);
-    return Scaffold(
-      appBar: AppBar(
-        elevation: 2,
-        leading: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Image.asset("assets/images/aiclopedia.png"),
-        ),
-        title: const Text("Ask Anything"),
-        actions: [
-          IconButton(
-            onPressed: () async {
-              await Services.showModalSheet(context: context);
-            },
-            icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
+    return WillPopScope(
+      onWillPop: (){
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => BottomNavBar()),
+        );
+        return Future.value(false);
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          elevation: 2,
+          leading: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Image.asset("assets/images/aiclo.png"),
           ),
-        ],
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Top ad unit is here
-            if(chatScreenTopBanner == null)
-              SizedBox(height: 70)
-            else
-              SizedBox(
-                height: 60,
-                child: AdWidget(ad: chatScreenTopBanner),
-              ),
-            Flexible(
-              child: ListView.builder(
-                  controller: _listScrollController,
-                  itemCount: chatProvider.getChatList.length, //chatList.length,
-                  itemBuilder: (context, index) {
-                    return ChatWidget(
-                      msg: chatProvider
-                          .getChatList[index].msg, // chatList[index].msg,
-                      chatIndex: chatProvider.getChatList[index]
-                          .chatIndex, //chatList[index].chatIndex,
-                    );
-                  }),
-            ),
-            if (_isTyping) ...[
-              const SpinKitThreeBounce(
-                color: Colors.white,
-                size: 18,
-              ),
-            ],
-            const SizedBox(
-              height: 15,
-            ),
-            Material(
-              color: cardColor,
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        focusNode: focusNode,
-                        style: const TextStyle(color: Colors.white),
-                        controller: textEditingController,
-                        onSubmitted: (value) async {
-                          await sendMessageFCT(
-                              modelsProvider: modelsProvider,
-                              chatProvider: chatProvider);
-                          final question = textEditingController.text.trim();
-                          final user = await firebaseServices.getUserInfo();
-                          if (question.isNotEmpty) {
-                            await firebaseServices.saveQuestion(user, question);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Question saved'),
-                              ),
-                            );
-                          }
-                        },
-                        decoration: const InputDecoration.collapsed(
-                            hintText: "What's the second law of motion?",
-                            hintStyle: TextStyle(color: Colors.grey)),
-                      ),
-                    ),
-                    IconButton(
-                        onPressed: () async {
-                          final question = textEditingController.text.trim();
-                          final user = await firebaseServices.getUserInfo();
-                          if (question.isNotEmpty) {
-                            await firebaseServices.saveQuestion(user, question);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Question saved'),
-                              ),
-                            );
-                          }
-
-                          await sendMessageFCT(
-                              modelsProvider: modelsProvider,
-                              chatProvider: chatProvider);
-                        },
-                        icon: const Icon(
-                          Icons.send,
-                          color: Colors.white,
-                        ))
-                  ],
-                ),
-              ),
+          title: const Text("Ask Anything"),
+          actions: [
+            IconButton(
+              onPressed: () async {
+                await Services.showModalSheet(context: context);
+              },
+              icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
             ),
           ],
+        ),
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Top ad unit is here
+              if(chatScreenTopBanner == null)
+                SizedBox(height: 70)
+              else
+                SizedBox(
+                  height: 60,
+                  child: AdWidget(ad: chatScreenTopBanner),
+                ),
+              Flexible(
+                child: ListView.builder(
+                    controller: _listScrollController,
+                    itemCount: chatProvider.getChatList.length, //chatList.length,
+                    itemBuilder: (context, index) {
+                      return ChatWidget(
+                        msg: chatProvider
+                            .getChatList[index].msg, // chatList[index].msg,
+                        chatIndex: chatProvider.getChatList[index]
+                            .chatIndex, //chatList[index].chatIndex,
+                      );
+                    }),
+              ),
+              if (_isTyping) ...[
+                const SpinKitThreeBounce(
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ],
+              const SizedBox(
+                height: 15,
+              ),
+              Material(
+                color: cardColor,
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          focusNode: focusNode,
+                          style: const TextStyle(color: Colors.white),
+                          controller: textEditingController,
+                          onSubmitted: (value) async {
+                            await sendMessageFCT(
+                                modelsProvider: modelsProvider,
+                                chatProvider: chatProvider);
+                            final question = textEditingController.text.trim();
+                            final user = await firebaseServices.getUserInfo();
+                            if (question.isNotEmpty) {
+                              await firebaseServices.saveQuestion(user, question);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Question saved'),
+                                ),
+                              );
+                            }
+                          },
+                          decoration: const InputDecoration.collapsed(
+                              hintText: "What's the second law of motion?",
+                              hintStyle: TextStyle(color: Colors.grey)),
+                        ),
+                      ),
+                      IconButton(
+                          onPressed: () async {
+                            final question = textEditingController.text.trim();
+                            final user = await firebaseServices.getUserInfo();
+                            if (question.isNotEmpty) {
+                              await firebaseServices.saveQuestion(user, question);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Question saved'),
+                                ),
+                              );
+                            }
+
+                            await sendMessageFCT(
+                                modelsProvider: modelsProvider,
+                                chatProvider: chatProvider);
+                          },
+                          icon: const Icon(
+                            Icons.send,
+                            color: Colors.white,
+                          ))
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

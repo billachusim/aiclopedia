@@ -23,7 +23,7 @@ class DefaultButton extends StatelessWidget {
           shape:
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           primary: Colors.black12,
-          backgroundColor: disabled ? Colors.black12 : const Color(0xFFFFC402), // Set the button's background color
+          backgroundColor: disabled ? Colors.black12 : Colors.green, // Set the button's background color
         ),
         onPressed: disabled ? null : press as void Function()?, // Disable the button if it's disabled
         child: Text(
