@@ -14,7 +14,7 @@ class AdState {
     if (Platform.isAndroid) {
       return "ca-app-pub-2404156870680632/4534180720";
     } else if (Platform.isIOS) {
-      return "ca-app-pub-2404156870680632/3116018582";
+      return "ca-app-pub-2404156870680632/9244695314";
     } else {
       throw UnsupportedError("Unsupported platform");
     }
@@ -25,7 +25,7 @@ class AdState {
     if (Platform.isAndroid) {
       return "ca-app-pub-2404156870680632/4284551673";
     } else if (Platform.isIOS) {
-      return "ca-app-pub-2404156870680632/7874957062";
+      return "ca-app-pub-2404156870680632/6497196758";
     } else {
       throw UnsupportedError("Unsupported platform");
     }
@@ -36,7 +36,7 @@ class AdState {
     if (Platform.isAndroid) {
       return "ca-app-pub-2404156870680632/7595458335";
     } else if (Platform.isIOS) {
-      return "ca-app-pub-2404156870680632/5702526856";
+      return "ca-app-pub-2404156870680632/7931613647";
     } else {
       throw UnsupportedError("Unsupported platform");
     }
@@ -49,7 +49,7 @@ class AdState {
     if (Platform.isAndroid) {
       return "ca-app-pub-2404156870680632/5080975632";
     } else if (Platform.isIOS) {
-      return "ca-app-pub-2404156870680632/5702526856";
+      return "ca-app-pub-2404156870680632/1194852899";
     } else {
       throw UnsupportedError("Unsupported platform");
     }
@@ -60,7 +60,7 @@ class AdState {
     if (Platform.isAndroid) {
       return "ca-app-pub-2404156870680632/7323995596";
     } else if (Platform.isIOS) {
-      return "ca-app-pub-2404156870680632/5702526856";
+      return "ca-app-pub-2404156870680632/3871033417";
     } else {
       throw UnsupportedError("Unsupported platform");
     }
@@ -72,7 +72,7 @@ class AdState {
     if (Platform.isAndroid) {
       return "ca-app-pub-2404156870680632/6980380669";
     } else if (Platform.isIOS) {
-      return "ca-app-pub-2404156870680632/5702526856";
+      return "ca-app-pub-2404156870680632/7618706736";
     } else {
       throw UnsupportedError("Unsupported platform");
     }
@@ -84,7 +84,7 @@ class AdState {
     if (Platform.isAndroid) {
       return "ca-app-pub-2404156870680632/7033185708";
     } else if (Platform.isIOS) {
-      return "ca-app-pub-2404156870680632/5702526856";
+      return "ca-app-pub-2404156870680632/7235563358";
     } else {
       throw UnsupportedError("Unsupported platform");
     }

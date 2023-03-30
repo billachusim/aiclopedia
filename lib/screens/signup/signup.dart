@@ -37,7 +37,7 @@ class _SignupPageState extends State<SignupPage> {
       setState(() {
         signupBottomBanner = BannerAd(
             size: AdSize.banner,
-            adUnitId: adState.loginBottomBannerAdUnitId,
+            adUnitId: adState.signupBottomBannerAdUnitId,
             request: AdRequest(),
             listener: BannerAdListener(
               onAdFailedToLoad: (ad, error) {

@@ -92,7 +92,7 @@ class _ImageScreenState extends State<ImageScreen> {
           elevation: 2,
           leading: Padding(
             padding: const EdgeInsets.all(8.0),
-            child: Image.asset("assets/images/aiclo.png"),
+            child: Image.asset("assets/images/aiclop.png"),
           ),
           title: const Text("Ask Anything"),
           actions: [

@@ -1,4 +1,5 @@
 import 'package:AiClopedia/widgets/auto_scroll_container.dart';
+import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -30,6 +31,7 @@ class _HomepageState extends State<Homepage> {
   @override
   void initState() {
     super.initState();
+    AppTrackingTransparency.requestTrackingAuthorization();
   }
 
 
@@ -105,7 +107,7 @@ class _HomepageState extends State<Homepage> {
           elevation: 2,
           leading: Padding(
             padding: const EdgeInsets.all(8.0),
-            child: Image.asset("assets/images/aiclo.png"),
+            child: Image.asset("assets/images/aiclop.png"),
           ),
           title: const Text("Ai Clopedia"),
           actions: [

@@ -60,7 +60,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
           title: Text('My Questions'),
           leading: Padding(
             padding: const EdgeInsets.all(8.0),
-            child: Image.asset("assets/images/aiclo.png"),
+            child: Image.asset("assets/images/aiclop.png"),
           ),
         ),
         body: Column(
