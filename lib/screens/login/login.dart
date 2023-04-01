@@ -20,6 +20,13 @@ class _LoginPageState extends State<LoginPage> {
   bool isSigningIn = false;
   final FirebaseServices _firebaseServices = FirebaseServices();
 
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -66,7 +73,6 @@ class _LoginPageState extends State<LoginPage> {
           child: Form(
             key: _formKey,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
                 SizedBox(height: 20.0),
                 Center(
@@ -158,7 +164,6 @@ class _LoginPageState extends State<LoginPage> {
                           _passwordController.text);
                     }
                     else {
-                      //Fluttertoast.showToast(msg: 'error');
                       isSigningIn = false;
                     }
                     Navigator.push(
@@ -184,7 +189,7 @@ class _LoginPageState extends State<LoginPage> {
                 if(loginBottomBanner == null)
                   SizedBox(height: 70)
                 else
-                  SizedBox(
+                  Container(
                     height: 60,
                     child: AdWidget(ad: loginBottomBanner),
                   ),
