@@ -1,3 +1,4 @@
+import 'package:AiClopedia/screens/question_details.dart';
 import 'package:AiClopedia/widgets/bottom_nav.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -6,7 +7,6 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 import '../models/questionModel.dart';
 import '../services/ad_state.dart';
-import 'home_screen.dart';
 
 class ActivitiesScreen extends StatefulWidget {
 
@@ -93,38 +93,61 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                     itemCount: snapshot.data!.length,
                     itemBuilder: (context, index) {
                       final question = snapshot.data![index];
-                      return Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8.0),
-                          color: Colors.grey[200],
-                        ),
-                        margin: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                        padding: EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              question.question,
-                              style: TextStyle(
-                                fontSize: 18.0,
-                                fontWeight: FontWeight.bold,
-                              ),
+                      return GestureDetector(
+                        onTap: () async {
+                          // Navigate to the QuestionDetails screen and wait for a result.
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => QuestionDetails(question: question),
                             ),
-                            SizedBox(height: 8.0),
-                            Text(
-                              'Location: ${question.nameOfSchool}',
-                              style: TextStyle(
-                                fontSize: 14.0,
+                          );
+
+                          // Handle the result, if needed.
+                          // For example, you could refresh the question list if the user edited the question.
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8.0),
+                            color: Colors.grey[200],
+                          ),
+                          margin: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                          padding: EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                question.question,
+                                style: TextStyle(
+                                  fontSize: 18.0,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
-                            SizedBox(height: 4.0),
-                            Text(
-                              'Is Featured ?: ${question.isFeatured}',
-                              style: TextStyle(
-                                fontSize: 14.0,
+                              SizedBox(height: 8.0),
+                              Text(
+                                'Location: ${question.nameOfSchool}',
+                                style: TextStyle(
+                                  fontSize: 14.0,
+                                ),
                               ),
-                            ),
-                          ],
+                              SizedBox(height: 4.0),
+                              Text(
+                                'Is Featured ?: ${question.isFeatured}',
+                                style: TextStyle(
+                                  fontSize: 14.0,
+                                ),
+                              ),
+                              SizedBox(height: 8.0),
+                              Text(
+                                'Answer: ${question.answer}',
+                                maxLines: 3,
+                                style: TextStyle(
+                                  fontSize: 14.0,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     },

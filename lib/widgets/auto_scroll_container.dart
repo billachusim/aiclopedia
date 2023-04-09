@@ -135,59 +135,61 @@ class _AutoScrollContainerState extends State<AutoScrollContainer> {
         borderRadius: BorderRadius.circular(20),
         color: Colors.green,
       ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: Text(
-              "Ai, write a short poem to encourage me.",
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Text(
+                "Ai, write a short poem to encourage me.",
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: ValueListenableBuilder<double>(
-              valueListenable: _textHeight,
-              builder: (context, textHeight, child) {
-                if (textHeight > 6 * 14) {
-                  // If the text height exceeds 6 lines (assuming 14pt font size)
-                  _scrollController.animateTo(
-                    _scrollController.initialScrollOffset,
-                    duration: Duration(milliseconds: 80),
-                    curve: Curves.easeInOut,
+            Padding(
+              padding: const EdgeInsets.all(10.0),
+              child: ValueListenableBuilder<double>(
+                valueListenable: _textHeight,
+                builder: (context, textHeight, child) {
+                  if (textHeight > 6 * 14) {
+                    // If the text height exceeds 6 lines (assuming 14pt font size)
+                    _scrollController.animateTo(
+                      _scrollController.initialScrollOffset,
+                      duration: Duration(milliseconds: 80),
+                      curve: Curves.easeInOut,
+                    );
+                  }
+                  return SingleChildScrollView(
+                    child: ListView(
+                      shrinkWrap: true,
+                      children: [
+                        AnimatedTextKit(
+                          animatedTexts: [
+                            TypewriterAnimatedText(
+                              poems[index],
+                              textStyle: TextStyle(fontSize: 14),
+                              speed: Duration(milliseconds: 80),
+                            ),
+                          ],
+                          totalRepeatCount: 1,
+                          //pause: Duration(seconds: 1),
+                          onFinished: () {
+                            // After the text animation finishes, reset the scroll position and text height
+                            _scrollController.jumpTo(0);
+                            _textHeight.value = 0;
+                          },
+                        ),
+                      ],
+                    ),
                   );
-                }
-                return SingleChildScrollView(
-                  child: ListView(
-                    shrinkWrap: true,
-                    children: [
-                      AnimatedTextKit(
-                        animatedTexts: [
-                          TypewriterAnimatedText(
-                            poems[index],
-                            textStyle: TextStyle(fontSize: 14),
-                            speed: Duration(milliseconds: 80),
-                          ),
-                        ],
-                        totalRepeatCount: 1,
-                        //pause: Duration(seconds: 1),
-                        onFinished: () {
-                          // After the text animation finishes, reset the scroll position and text height
-                          _scrollController.jumpTo(0);
-                          _textHeight.value = 0;
-                        },
-                      ),
-                    ],
-                  ),
-                );
-              },
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

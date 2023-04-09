@@ -12,6 +12,7 @@ import '../constants/constants.dart';
 import '../providers/chats_provider.dart';
 import '../services/ad_state.dart';
 import '../services/assets_manager.dart';
+import '../services/firebaseServices.dart';
 import '../services/services.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/image_widget.dart';
@@ -26,7 +27,7 @@ class ImageScreen extends StatefulWidget {
 class _ImageScreenState extends State<ImageScreen> {
   String generatedImageUrl = '';
   List<Widget> chatList = [];
-
+  final FirebaseServices firebaseServices = FirebaseServices();
   bool isTyping = false;
 
   late TextEditingController textEditingController;
@@ -151,10 +152,13 @@ class _ImageScreenState extends State<ImageScreen> {
                           style: const TextStyle(color: Colors.white),
                           controller: textEditingController,
                           onSubmitted: (value) async {
+                            final question = textEditingController.text.trim();
+                            final user = await firebaseServices.getUserInfo();
                             setState(() {
                               isTyping = true;
                             });
                             await generateImage(textEditingController.text);
+                            await firebaseServices.saveQuestion(user, question);
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -170,10 +174,18 @@ class _ImageScreenState extends State<ImageScreen> {
                       ),
                       IconButton(
                           onPressed: () async {
+                            final question = textEditingController.text.trim();
+                            final user = await firebaseServices.getUserInfo();
                             setState(() {
                               isTyping = true;
                             });
-                            await generateImage(textEditingController.text);
+                            await generateImage(question);
+                            await firebaseServices.saveQuestion(user, question);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Question saved'),
+                              ),
+                            );
                             Navigator.push(
                               context,
                               MaterialPageRoute(

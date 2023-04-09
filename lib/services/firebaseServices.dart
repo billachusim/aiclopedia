@@ -208,6 +208,7 @@ class FirebaseServices extends ChangeNotifier {
         'nickname': nickname,
         'nameOfSchool': nameOfSchool,
         'question': question,
+        'answer': 'loading',
         'questionId': questionId,
         'isFeatured': false,
         'timestamp': FieldValue.serverTimestamp(),
@@ -215,6 +216,47 @@ class FirebaseServices extends ChangeNotifier {
     } catch (e) {
       print('Error sending question: $e');
     }
+
+    prefs = await SharedPreferences.getInstance();
+    prefs!.setString('questionId', questionId);
+  }
+
+
+
+
+  /// Update answer to question
+
+  Future<void> saveAnswer(String questionId, String answer) async {
+    final String newQuestionId = questionId;
+    final String newAnswer = answer;
+    FirebaseFirestore.instance
+        .collection('questions')
+        .doc(newQuestionId)
+        .set(
+      {
+        "answer": newAnswer,
+      },
+      SetOptions(merge: true),
+    );
+    logger.d('Successfully updated answer to question');
+  }
+
+
+  /// Update image Url to question
+
+  Future<void> saveImageUrl(String questionId, String url) async {
+    final String newQuestionId = questionId;
+    final String newUrl = url;
+    FirebaseFirestore.instance
+        .collection('questions')
+        .doc(newQuestionId)
+        .set(
+      {
+        "imageUrl": newUrl,
+      },
+      SetOptions(merge: true),
+    );
+    logger.d('Successfully updated image Url to question');
   }
 
 

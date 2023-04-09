@@ -1,4 +1,5 @@
 import 'package:AiClopedia/screens/all_activities.dart';
+import 'package:AiClopedia/screens/question_details.dart';
 import 'package:AiClopedia/widgets/auto_scroll_container.dart';
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -280,31 +281,45 @@ class _HomepageState extends State<Homepage> {
                         itemCount: snapshot.data!.length,
                         itemBuilder: (context, index) {
                           final question = snapshot.data![index];
-                          return Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8.0),
-                              color: Colors.grey[200],
-                            ),
-                            margin: EdgeInsets.symmetric(vertical: 7.0, horizontal: 8.0),
-                            padding: EdgeInsets.all(4.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SelectableText(
-                                  question.question,
-                                  style: TextStyle(
-                                    fontSize: 14.0,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                          return GestureDetector(
+                            onTap: () async {
+                              // Navigate to the QuestionDetails screen and wait for a result.
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => QuestionDetails(question: question),
                                 ),
-                                SizedBox(height: 2.0),
-                                Text(
-                                  "${question.nickname}, ${question.nameOfSchool}. | ${question.timestamp}",
-                                  style: TextStyle(
-                                    fontSize: 12.0,
+                              );
+
+                              // Handle the result, if needed.
+                              // For example, you could refresh the question list if the user edited the question.
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8.0),
+                                color: Colors.grey[200],
+                              ),
+                              margin: EdgeInsets.symmetric(vertical: 7.0, horizontal: 8.0),
+                              padding: EdgeInsets.all(4.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    question.question,
+                                    style: TextStyle(
+                                      fontSize: 14.0,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                  SizedBox(height: 2.0),
+                                  Text(
+                                    "${question.nickname}, ${question.nameOfSchool}. | ${question.timestamp}",
+                                    style: TextStyle(
+                                      fontSize: 12.0,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           );
                         },

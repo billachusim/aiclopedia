@@ -6,6 +6,8 @@ class Question {
   final String nickname;
   final String nameOfSchool;
   final String question;
+  final String answer;
+  final String imageUrl;
   final DateTime timestamp;
   final bool isFeatured;
 
@@ -14,6 +16,8 @@ class Question {
     required this.nickname,
     required this.nameOfSchool,
     required this.question,
+    required this.answer,
+    required this.imageUrl,
     required this.timestamp,
     required this.isFeatured,
     required this.questionId,
@@ -25,6 +29,8 @@ class Question {
       nickname: json['nickname'] ?? '',
       nameOfSchool: json['nameOfSchool'] ?? '',
       question: json['question'],
+      answer: json['answer'] ?? '',
+      imageUrl: json['imageUrl'] ?? '',
       questionId: json['questionId'] ?? '',
       timestamp: (json['timestamp'] as Timestamp).toDate(),
       isFeatured: json['isFeatured'] ?? false,
