@@ -40,6 +40,26 @@ class _BottomNavbarState extends State<BottomNavBar> {
   final FirebaseServices firebaseServices = FirebaseServices();
   var currentUser = FirebaseAuth.instance.currentUser;
   int _select = 0;
+  PageController _pageController = PageController(initialPage: 0);
+
+
+  void setTabIndex(index) async {
+    if (await firebaseServices.isUserSignIn(context))
+      _pageController.animateToPage(
+          index, duration: Duration(milliseconds: 500),
+          curve: Curves.easeInToLinear);
+    switch(index) {
+      case 0: {}
+      break;
+      case 1: {}
+      break;
+      case 2: {}
+      break;
+      case 3: {}
+      break;
+
+    }
+  }
 
   final screens = [
     const Homepage(),
@@ -107,10 +127,21 @@ class _BottomNavbarState extends State<BottomNavBar> {
         return Future.value(false);
       },
       child: Scaffold(
-        body: screens[_select],
+        body: PageView(
+            physics: AlwaysScrollableScrollPhysics(),
+            controller: _pageController,
+            onPageChanged: (index){
+              setState(() {
+                _select  = index;
+              });
+            },
+            children: screens,
+        ),
         bottomNavigationBar: BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.green,
           items: items,
-          onTap: ((value) => setState(() => _select = value)),
+          onTap: (int index) => setTabIndex(index),
           currentIndex: _select,
           selectedLabelStyle: const TextStyle(
             fontWeight: FontWeight.bold,
@@ -121,8 +152,8 @@ class _BottomNavbarState extends State<BottomNavBar> {
             fontWeight: FontWeight.normal,
             fontSize: 10,
           ),
-          selectedItemColor: const Color(0xFF097E18),
-          unselectedItemColor: const Color(0xFF9E9E9E),
+          selectedItemColor: Colors.white,
+          unselectedItemColor: Colors.white60,
         ),
       ),
     );

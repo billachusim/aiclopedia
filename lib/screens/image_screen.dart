@@ -15,7 +15,6 @@ import '../services/assets_manager.dart';
 import '../services/services.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/image_widget.dart';
-import 'home_screen.dart';
 
 class ImageScreen extends StatefulWidget {
   const ImageScreen({super.key});

@@ -12,6 +12,7 @@ import 'providers/chats_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  MobileAds.instance.initialize();
   final initFuture = MobileAds.instance.initialize();
   final adState = AdState(initFuture);
   await Firebase.initializeApp();

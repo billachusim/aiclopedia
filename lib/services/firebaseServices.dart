@@ -1,10 +1,13 @@
+import 'package:AiClopedia/screens/login/login.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 
 import '../models/userModel.dart';
 import 'helper.dart';
@@ -25,6 +28,10 @@ class FirebaseServices extends ChangeNotifier {
   final String alterEgoKey = 'alterEgo';
   final String alterEgoAccessCodeKey = 'alterEgoAccessCodeKey';
   String? _usersID;
+
+
+//used for generating random id for each session
+  var uuid = Uuid();
 
   //UserModel? user;
 
@@ -126,6 +133,22 @@ class FirebaseServices extends ChangeNotifier {
   }
 
 
+  /// checks if a user is signed in or not
+  /// if the use is not signed in
+  /// then request them to sign in
+  Future<bool> isUserSignIn(BuildContext context) async {
+    _usersID = await getUsersId();
+    if (_usersID!.isEmpty) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => LoginPage()),
+      );      return false;
+    }
+    return true;
+  }
+
+
   /// cache user id
   void setUsersId(String id) async {
     //await getUserWithId(id: id);
@@ -177,12 +200,16 @@ class FirebaseServices extends ChangeNotifier {
   Future<void> saveQuestion(UserModel user, String question) async {
     final String nickname = user.nickname;
     final String nameOfSchool = user.nameOfSchool;
+    final String questionId = uuid.v1();
+
     try {
-      await FirebaseFirestore.instance.collection('questions').add({
+      await FirebaseFirestore.instance.collection('questions').doc(questionId).set({
         'userId': user.userId,
         'nickname': nickname,
         'nameOfSchool': nameOfSchool,
         'question': question,
+        'questionId': questionId,
+        'isFeatured': false,
         'timestamp': FieldValue.serverTimestamp(),
       });
     } catch (e) {

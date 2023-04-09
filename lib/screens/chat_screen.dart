@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 import 'package:AiClopedia/widgets/bottom_nav.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -14,7 +15,6 @@ import '../providers/models_provider.dart';
 import '../services/ad_state.dart';
 import '../services/firebaseServices.dart';
 import '../widgets/text_widget.dart';
-import 'home_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -26,7 +26,6 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final FirebaseServices firebaseServices = FirebaseServices();
   var currentUser = FirebaseAuth.instance.currentUser;
-
   bool _isTyping = false;
 
   late TextEditingController textEditingController;
@@ -243,10 +242,6 @@ class _ChatScreenState extends State<ChatScreen> {
       });
       await chatProvider.sendMessageAndGetAnswers(
           msg: msg, chosenModelId: modelsProvider.getCurrentModel);
-      // chatList.addAll(await ApiService.sendMessage(
-      //   message: textEditingController.text,
-      //   modelId: modelsProvider.getCurrentModel,
-      // ));
       setState(() {});
     } catch (error) {
       log("error $error");

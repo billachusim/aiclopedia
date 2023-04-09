@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:AiClopedia/screens/home_screen.dart';
 import 'package:AiClopedia/widgets/bottom_nav.dart';
 
 import 'login/login.dart';
@@ -24,19 +23,11 @@ class _SplashPageState extends State<SplashPage>
       ..forward()
       ..addStatusListener((status) {
         if (status == AnimationStatus.completed) {
-          if (currentUser == null) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => LoginPage()),
-            );
-          } else {
             Navigator.push(
               context,
               MaterialPageRoute(
                   builder: (context) => BottomNavBar()),
             );
-          }
         }
       });
   }

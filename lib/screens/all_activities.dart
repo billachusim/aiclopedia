@@ -6,19 +6,19 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 import '../models/questionModel.dart';
 import '../services/ad_state.dart';
-import 'home_screen.dart';
+import '../services/firebaseServices.dart';
 
-class ActivitiesScreen extends StatefulWidget {
+class AllActivitiesScreen extends StatefulWidget {
 
-  const ActivitiesScreen({Key? key,}) : super(key: key);
+  const AllActivitiesScreen({Key? key,}) : super(key: key);
 
   @override
-  _ActivitiesScreenState createState() => _ActivitiesScreenState();
+  _AllActivitiesScreenState createState() => _AllActivitiesScreenState();
 }
 
-class _ActivitiesScreenState extends State<ActivitiesScreen> {
+class _AllActivitiesScreenState extends State<AllActivitiesScreen> {
   var currentUser = FirebaseAuth.instance.currentUser;
-
+  bool? isFeatured;
   late BannerAd activitiesScreenTopBanner;
 
   @override
@@ -57,11 +57,8 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text('My Questions'),
-          leading: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Image.asset("assets/images/aiclop.png"),
-          ),
+          title: Text('All Questions'),
+          leading: Image.asset("assets/images/aiclop.png"),
         ),
         body: Column(
           children: [
@@ -74,7 +71,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                 child: AdWidget(ad: activitiesScreenTopBanner),
               ),
             StreamBuilder<List<Question>>(
-              stream: getQuestions(currentUser!.uid),
+              stream: getAllQuestions(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return Center(
@@ -112,16 +109,34 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                             ),
                             SizedBox(height: 8.0),
                             Text(
-                              'Location: ${question.nameOfSchool}',
+                              'Asked by: ${question.nickname}',
                               style: TextStyle(
-                                fontSize: 14.0,
+                                fontSize: 16.0,
                               ),
                             ),
                             SizedBox(height: 4.0),
                             Text(
-                              'Is Featured ?: ${question.isFeatured}',
+                              'School: ${question.nameOfSchool}',
                               style: TextStyle(
-                                fontSize: 14.0,
+                                fontSize: 16.0,
+                              ),
+                            ),
+
+                            GestureDetector(
+                              onTap: () {
+                                if (question.isFeatured == false)
+                                  setState(() {
+                                    setToFeatured(question);
+                                  });
+                                else removeFromFeatured(question);
+                                setState(() {});
+                              },
+                              child: Container(
+                                child: Icon(
+                                  question.isFeatured == true ? Icons.lightbulb : Icons.lightbulb_outline,
+                                  color: Colors.green,
+                                  size: 26,
+                                ),
                               ),
                             ),
                           ],
@@ -138,14 +153,53 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
     );
   }
 
-  Stream<List<Question>> getQuestions(String userId) {
+  Stream<List<Question>> getAllQuestions() {
     return FirebaseFirestore.instance
         .collection('questions')
-        .where('userId', isEqualTo: userId)
         .orderBy('timestamp', descending: true)
+        .limit(100)
         .snapshots()
         .map((querySnapshot) => querySnapshot.docs
         .map((doc) => Question.fromJson(doc.data()))
         .toList());
   }
+
+
+  /// Edit feature
+
+  Future<bool?> setToFeatured(Question question) async {
+    final String questionId = question.questionId;
+    final value = true;
+    FirebaseFirestore.instance
+        .collection('questions')
+        .doc(questionId)
+        .update({
+      "isFeatured": value,
+    },
+    );
+    logger.d('Successfully changed feature');
+    print('Is Featured?: $value');
+    isFeatured = value;
+    return value;
+  }
+
+
+  Future<bool?> removeFromFeatured(Question question) async {
+    final String questionId = question.questionId;
+    final value = false;
+    FirebaseFirestore.instance
+        .collection('questions')
+        .doc(questionId)
+        .update({
+      "isFeatured": value,
+    },
+    );
+    logger.d('Successfully changed feature');
+    print('Is Featured?: $value');
+    isFeatured = value;
+    return value;
+  }
+
+
+
 }
