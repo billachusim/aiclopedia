@@ -30,8 +30,6 @@ class _HomepageState extends State<Homepage> {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final FirebaseServices firebaseServices = FirebaseServices();
   var currentUser = FirebaseAuth.instance.currentUser;
-  bool adReady = false;
-
 
   @override
   void initState() {
@@ -48,8 +46,9 @@ class _HomepageState extends State<Homepage> {
 
 
   // Admob Ad Units.
-  late BannerAd homeTopBanner;
-  late BannerAd homeBottomBanner;
+  BannerAd? homeTopBanner;
+  BannerAd? homeBottomBanner;
+  bool _bannerIsLoaded = false;
 
   @override
   void didChangeDependencies() {
@@ -62,18 +61,15 @@ class _HomepageState extends State<Homepage> {
         homeTopBanner = BannerAd(
             size: AdSize.banner,
             adUnitId: adState.homeTopBannerAdUnitId,
-            request: AdRequest(),
+            request: const AdRequest(),
             listener: BannerAdListener(
-              onAdLoaded: (ad) {
-                homeTopBanner.load();
-                // Ad successfully loaded - display an AdWidget with the banner ad.
-              },
               onAdFailedToLoad: (ad, error) {
                 ad.dispose();
               },
             )
         )
           ..load();
+        _bannerIsLoaded = true;
       });
     });
 
@@ -153,13 +149,13 @@ class _HomepageState extends State<Homepage> {
             ListView(
               children: [
                 // Top ad unit is here
-                if(adReady = false)
-                  SizedBox(height: 70, child: Text('Relevant ads only', style: TextStyle(color: Colors.white),),)
-                else
+                if (homeTopBanner != null && _bannerIsLoaded)
                   SizedBox(
                     height: 60,
-                    child: AdWidget(ad: homeTopBanner),
-                  ),
+                    child: AdWidget(ad: homeTopBanner!),
+                  )
+                else
+                  SizedBox(height: 70, child: Text('Relevant ads only', style: TextStyle(color: Colors.white),),),
 
                 SizedBox(height: 4,),
 
@@ -274,7 +270,6 @@ class _HomepageState extends State<Homepage> {
                       }
 
                       if (snapshot.hasData) {
-                        adReady = true;
                       }
 
                       return ListView.builder(
@@ -330,13 +325,14 @@ class _HomepageState extends State<Homepage> {
 
                 SizedBox(height: 10,),
 
-                if(homeBottomBanner == null)
-                  SizedBox(height: 70)
-                else
+                if (homeBottomBanner != null && _bannerIsLoaded)
                   SizedBox(
                     height: 60,
-                    child: AdWidget(ad: homeBottomBanner),
-                  ),
+                    child: AdWidget(ad: homeBottomBanner!),
+                  )
+                else
+                  SizedBox(height: 70, child: Text('Relevant ads only', style: TextStyle(color: Colors.white),),),
+
               ],
             ),
           ],

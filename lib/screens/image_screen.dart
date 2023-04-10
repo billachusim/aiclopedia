@@ -11,7 +11,6 @@ import '../constants/api_consts.dart';
 import '../constants/constants.dart';
 import '../providers/chats_provider.dart';
 import '../services/ad_state.dart';
-import '../services/assets_manager.dart';
 import '../services/firebaseServices.dart';
 import '../services/services.dart';
 import '../widgets/bottom_nav.dart';
@@ -49,7 +48,8 @@ class _ImageScreenState extends State<ImageScreen> {
     super.dispose();
   }
 
-  late BannerAd imageScreenTopBanner;
+  BannerAd? imageScreenTopBanner;
+  bool _bannerIsLoaded = false;
 
   @override
   void didChangeDependencies() {
@@ -62,7 +62,7 @@ class _ImageScreenState extends State<ImageScreen> {
         imageScreenTopBanner = BannerAd(
             size: AdSize.banner,
             adUnitId: adState.imageScreenTopBannerAdUnitId,
-            request: AdRequest(),
+            request: const AdRequest(),
             listener: BannerAdListener(
               onAdFailedToLoad: (ad, error) {
                 ad.dispose();
@@ -70,6 +70,7 @@ class _ImageScreenState extends State<ImageScreen> {
             )
         )
           ..load();
+        _bannerIsLoaded = true;
       });
     });
   }
@@ -108,13 +109,13 @@ class _ImageScreenState extends State<ImageScreen> {
           child: Column(
             children: [
               // Top ad unit is here
-              if(imageScreenTopBanner == null)
-                SizedBox(height: 70)
-              else
+              if (imageScreenTopBanner != null && _bannerIsLoaded)
                 SizedBox(
                   height: 60,
-                  child: AdWidget(ad: imageScreenTopBanner),
-                ),
+                  child: AdWidget(ad: imageScreenTopBanner!),
+                )
+              else
+                SizedBox(height: 70, child: Text('Relevant ads only', style: TextStyle(color: Colors.white),),),
 
               Flexible(
                 child: ListView.builder(

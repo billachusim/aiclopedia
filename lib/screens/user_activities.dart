@@ -19,7 +19,8 @@ class ActivitiesScreen extends StatefulWidget {
 class _ActivitiesScreenState extends State<ActivitiesScreen> {
   var currentUser = FirebaseAuth.instance.currentUser;
 
-  late BannerAd activitiesScreenTopBanner;
+  BannerAd? activitiesScreenTopBanner;
+  bool _bannerIsLoaded = false;
 
   @override
   void didChangeDependencies() {
@@ -32,7 +33,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
         activitiesScreenTopBanner = BannerAd(
             size: AdSize.banner,
             adUnitId: adState.activitiesScreenTopBannerAdUnitId,
-            request: AdRequest(),
+            request: const AdRequest(),
             listener: BannerAdListener(
               onAdFailedToLoad: (ad, error) {
                 ad.dispose();
@@ -40,6 +41,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
             )
         )
           ..load();
+        _bannerIsLoaded = true;
       });
     });
   }
@@ -66,13 +68,14 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
         body: Column(
           children: [
             // Top ad unit is here
-            if(activitiesScreenTopBanner == null)
-              SizedBox(height: 70)
-            else
+            if (activitiesScreenTopBanner != null && _bannerIsLoaded)
               SizedBox(
                 height: 60,
-                child: AdWidget(ad: activitiesScreenTopBanner),
-              ),
+                child: AdWidget(ad: activitiesScreenTopBanner!),
+              )
+            else
+              SizedBox(height: 70, child: Text('Relevant ads only', style: TextStyle(color: Colors.white),),),
+
             StreamBuilder<List<Question>>(
               stream: getQuestions(currentUser!.uid),
               builder: (context, snapshot) {
@@ -96,15 +99,12 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                       return GestureDetector(
                         onTap: () async {
                           // Navigate to the QuestionDetails screen and wait for a result.
-                          final result = await Navigator.push(
+                          Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) => QuestionDetails(question: question),
                             ),
                           );
-
-                          // Handle the result, if needed.
-                          // For example, you could refresh the question list if the user edited the question.
                         },
                         child: Container(
                           decoration: BoxDecoration(
@@ -125,26 +125,53 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                               ),
                               SizedBox(height: 8.0),
                               Text(
-                                'Location: ${question.nameOfSchool}',
-                                style: TextStyle(
-                                  fontSize: 14.0,
-                                ),
-                              ),
-                              SizedBox(height: 4.0),
-                              Text(
-                                'Is Featured ?: ${question.isFeatured}',
-                                style: TextStyle(
-                                  fontSize: 14.0,
-                                ),
-                              ),
-                              SizedBox(height: 8.0),
-                              Text(
                                 'Answer: ${question.answer}',
                                 maxLines: 3,
                                 style: TextStyle(
                                   fontSize: 14.0,
                                   overflow: TextOverflow.ellipsis,
                                 ),
+                              ),
+                              SizedBox(height: 5.0),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Container(
+                                    child: Icon(
+                                      question.isFeatured == true ? Icons.lightbulb : Icons.lightbulb_outline,
+                                      color: Colors.green,
+                                      size: 26,
+                                    ),
+                                  ),
+
+                                  Container(
+                                    margin: EdgeInsets.only(bottom: 6),
+                                    padding: EdgeInsets.all(5),
+                                    width: 115,
+                                    height: 30,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(20.0),
+                                      gradient: LinearGradient(
+                                        begin: Alignment(-0.37857140550652835, -1.9473685559777252),
+                                        end: Alignment(1.2428571464417884, 2.526316110739735),
+                                        stops: [0.0, 0.856177031993866, 1.0],
+                                        colors: [
+                                          Colors.white54,
+                                          Colors.green,
+                                          Colors.lightGreenAccent,
+                                        ],
+                                      ),
+                                    ),
+                                    child: Center(
+                                      child: Text('O P E N',
+                                        style: TextStyle(
+                                            fontSize: 15.0,
+                                            color: Colors.green,
+                                            fontWeight: FontWeight.w700),
+                                      ),
+                                    ),
+                                  )
+                                ],
                               ),
                             ],
                           ),

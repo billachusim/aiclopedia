@@ -1,14 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
-import 'package:AiClopedia/widgets/image_widget.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:http/http.dart' as http;
 import 'package:AiClopedia/models/questionModel.dart';
 import 'package:chat_gpt_flutter/chat_gpt_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../constants/api_consts.dart';
+import '../services/ad_state.dart';
 import '../services/firebaseServices.dart';
 
 class QuestionDetails extends StatefulWidget {
@@ -25,7 +27,6 @@ class _QuestionDetailsState extends State<QuestionDetails> {
   final chatGpt = ChatGpt(apiKey: '$API_KEY');
   String? _answer;
   String generatedImageUrl = '';
-  StreamSubscription<StreamCompletionResponse>? streamSubscription;
   bool _isLoading = false;
 
   @override
@@ -37,7 +38,6 @@ class _QuestionDetailsState extends State<QuestionDetails> {
 
   @override
   void dispose() {
-    streamSubscription?.cancel();
     super.dispose();
   }
 
@@ -94,6 +94,52 @@ class _QuestionDetailsState extends State<QuestionDetails> {
     }
   }
 
+  BannerAd? questionDetailsTopBanner;
+  BannerAd? questionDetailsBottomBanner;
+  bool _bannerIsLoaded = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final adState = Provider.of<AdState>(context);
+
+    // Implement a top location banner ad unit.
+    adState.initialization.then((status) {
+      setState(() {
+        questionDetailsTopBanner = BannerAd(
+            size: AdSize.banner,
+            adUnitId: adState.questionDetailsTopBanner,
+            request: const AdRequest(),
+            listener: BannerAdListener(
+              onAdFailedToLoad: (ad, error) {
+                ad.dispose();
+              },
+            )
+        )
+          ..load();
+        _bannerIsLoaded = true;
+      });
+    });
+
+
+    // Implement a top location banner ad unit.
+    adState.initialization.then((status) {
+      setState(() {
+        questionDetailsBottomBanner = BannerAd(
+            size: AdSize.banner,
+            adUnitId: adState.questionDetailsBottomBanner,
+            request: AdRequest(),
+            listener: BannerAdListener(
+              onAdFailedToLoad: (ad, error) {
+                ad.dispose();
+              },
+            )
+        )
+          ..load();
+      });
+    });
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -108,6 +154,16 @@ class _QuestionDetailsState extends State<QuestionDetails> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            SizedBox(height: 4.0),
+            // Top ad unit is here
+            if (questionDetailsTopBanner != null && _bannerIsLoaded)
+              SizedBox(
+                height: 60,
+                child: AdWidget(ad: questionDetailsTopBanner!),
+              )
+            else
+              SizedBox(height: 70, child: Text('Relevant ads only', style: TextStyle(color: Colors.white),),),
+
             Text(
               question.question,
               style: TextStyle(
@@ -155,6 +211,14 @@ class _QuestionDetailsState extends State<QuestionDetails> {
                 color: Colors.white70,
               ),
             ),
+            SizedBox(height: 4.0),
+            Text(
+              'Is Featured = ${question.isFeatured}',
+              style: TextStyle(
+                fontSize: 14.0,
+                color: Colors.white70,
+              ),
+            ),
             SizedBox(height: 20.0),
             Visibility(
               visible: generatedImageUrl.length>11,
@@ -164,6 +228,17 @@ class _QuestionDetailsState extends State<QuestionDetails> {
                 ),
               ),
             ),
+            SizedBox(height: 8.0),
+
+            // Top ad unit is here
+            if (questionDetailsBottomBanner != null && _bannerIsLoaded)
+              SizedBox(
+                height: 60,
+                child: AdWidget(ad: questionDetailsBottomBanner!),
+              )
+            else
+              SizedBox(height: 70, child: Text('Relevant ads only', style: TextStyle(color: Colors.white),),),
+
           ],
         ),
       ),

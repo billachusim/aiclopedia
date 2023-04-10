@@ -25,7 +25,8 @@ class _SignupPageState extends State<SignupPage> {
   final FirebaseServices _firebaseServices = FirebaseServices();
 
 
-  late BannerAd signupBottomBanner;
+  BannerAd? signupBottomBanner;
+  bool _bannerIsLoaded = false;
 
   @override
   void didChangeDependencies() {
@@ -38,7 +39,7 @@ class _SignupPageState extends State<SignupPage> {
         signupBottomBanner = BannerAd(
             size: AdSize.banner,
             adUnitId: adState.signupBottomBannerAdUnitId,
-            request: AdRequest(),
+            request: const AdRequest(),
             listener: BannerAdListener(
               onAdFailedToLoad: (ad, error) {
                 ad.dispose();
@@ -46,6 +47,7 @@ class _SignupPageState extends State<SignupPage> {
             )
         )
           ..load();
+        _bannerIsLoaded = true;
       });
     });
   }
@@ -214,13 +216,14 @@ class _SignupPageState extends State<SignupPage> {
                 ),
                 SizedBox(height: 10.0),
                 // Top ad unit is here
-                if(signupBottomBanner == null)
-                  SizedBox(height: 70)
-                else
+                if (signupBottomBanner != null && _bannerIsLoaded)
                   SizedBox(
                     height: 60,
-                    child: AdWidget(ad: signupBottomBanner),
-                  ),
+                    child: AdWidget(ad: signupBottomBanner!),
+                  )
+                else
+                  SizedBox(height: 70, child: Text('Relevant ads only', style: TextStyle(color: Colors.white),),),
+
               ],
             ),
           ),

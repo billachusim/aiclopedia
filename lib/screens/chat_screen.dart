@@ -47,7 +47,8 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
-  late BannerAd chatScreenTopBanner;
+  BannerAd? chatScreenTopBanner;
+  bool _bannerIsLoaded = false;
 
   @override
   void didChangeDependencies() {
@@ -60,7 +61,7 @@ class _ChatScreenState extends State<ChatScreen> {
         chatScreenTopBanner = BannerAd(
             size: AdSize.banner,
             adUnitId: adState.chatScreenTopBannerAdUnitId,
-            request: AdRequest(),
+            request: const AdRequest(),
             listener: BannerAdListener(
               onAdFailedToLoad: (ad, error) {
                 ad.dispose();
@@ -68,6 +69,7 @@ class _ChatScreenState extends State<ChatScreen> {
             )
         )
           ..load();
+        _bannerIsLoaded = true;
       });
     });
   }
@@ -107,13 +109,14 @@ class _ChatScreenState extends State<ChatScreen> {
           child: Column(
             children: [
               // Top ad unit is here
-              if(chatScreenTopBanner == null)
-                SizedBox(height: 70)
-              else
+              if (chatScreenTopBanner != null && _bannerIsLoaded)
                 SizedBox(
                   height: 60,
-                  child: AdWidget(ad: chatScreenTopBanner),
-                ),
+                  child: AdWidget(ad: chatScreenTopBanner!),
+                )
+              else
+                SizedBox(height: 70, child: Text('Relevant ads only', style: TextStyle(color: Colors.white),),),
+
               Flexible(
                 child: ListView.builder(
                     controller: _listScrollController,

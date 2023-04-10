@@ -9,7 +9,7 @@ class AdState {
   AdState(this.initialization);
 
 
-  // Create Tictactoe top banner ad unit.
+  // Create home top banner ad unit.
   String get homeTopBannerAdUnitId {
     if (Platform.isAndroid) {
       return "ca-app-pub-2404156870680632/4534180720";
@@ -20,7 +20,7 @@ class AdState {
     }
   }
 
-  // Create Mood Sessions top banner ad unit.
+  // Create home bottom banner ad unit.
   String get homeBottomBannerAdUnitId {
     if (Platform.isAndroid) {
       return "ca-app-pub-2404156870680632/4284551673";
@@ -85,6 +85,28 @@ class AdState {
       return "ca-app-pub-2404156870680632/7033185708";
     } else if (Platform.isIOS) {
       return "ca-app-pub-2404156870680632/7235563358";
+    } else {
+      throw UnsupportedError("Unsupported platform");
+    }
+  }
+
+
+  String get questionDetailsTopBanner {
+    if (Platform.isAndroid) {
+      return "ca-app-pub-2404156870680632/6010314853";
+    } else if (Platform.isIOS) {
+      return "ca-app-pub-2404156870680632/9751670195";
+    } else {
+      throw UnsupportedError("Unsupported platform");
+    }
+  }
+
+  // Create Mood Sessions top banner ad unit.
+  String get questionDetailsBottomBanner {
+    if (Platform.isAndroid) {
+      return "ca-app-pub-2404156870680632/6195568566";
+    } else if (Platform.isIOS) {
+      return "ca-app-pub-2404156870680632/3186261846";
     } else {
       throw UnsupportedError("Unsupported platform");
     }

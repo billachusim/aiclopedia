@@ -16,7 +16,6 @@ class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  bool _isLoading = false;
   bool isSigningIn = false;
   final FirebaseServices _firebaseServices = FirebaseServices();
 
@@ -34,7 +33,8 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  late BannerAd loginBottomBanner;
+  BannerAd? loginBottomBanner;
+  bool _bannerIsLoaded = false;
 
   @override
   void didChangeDependencies() {
@@ -47,7 +47,7 @@ class _LoginPageState extends State<LoginPage> {
         loginBottomBanner = BannerAd(
             size: AdSize.banner,
             adUnitId: adState.loginBottomBannerAdUnitId,
-            request: AdRequest(),
+            request: const AdRequest(),
             listener: BannerAdListener(
               onAdFailedToLoad: (ad, error) {
                 ad.dispose();
@@ -55,6 +55,7 @@ class _LoginPageState extends State<LoginPage> {
             )
         )
           ..load();
+        _bannerIsLoaded = true;
       });
     });
   }
@@ -187,14 +188,13 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                           SizedBox(height: 10.0),
                           // Top ad unit is here
-                          if(loginBottomBanner == null)
-                            SizedBox(height: 70,
-                            child: Text("Relevant ads only"),)
-                          else
-                            Container(
+                          if (loginBottomBanner != null && _bannerIsLoaded)
+                            SizedBox(
                               height: 60,
-                              child: AdWidget(ad: loginBottomBanner),
-                            ),
+                              child: AdWidget(ad: loginBottomBanner!),
+                            )
+                          else
+                            SizedBox(height: 70, child: Text('Relevant ads only', style: TextStyle(color: Colors.white),),),
 
                         ],
                       ),
