@@ -91,10 +91,7 @@ class _ImageScreenState extends State<ImageScreen> {
       child: Scaffold(
         appBar: AppBar(
           elevation: 2,
-          leading: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Image.asset("assets/images/aiclop.png"),
-          ),
+          automaticallyImplyLeading: true,
           title: const Text("Ask Anything"),
           actions: [
             IconButton(
@@ -169,7 +166,7 @@ class _ImageScreenState extends State<ImageScreen> {
                             isTyping = false;
                           },
                           decoration: const InputDecoration.collapsed(
-                              hintText: "What's the second law of motion?",
+                              hintText: "Image of a happy rabbit?",
                               hintStyle: TextStyle(color: Colors.grey)),
                         ),
                       ),

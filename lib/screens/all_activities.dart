@@ -61,7 +61,7 @@ class _AllActivitiesScreenState extends State<AllActivitiesScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: Text('All Questions'),
-          leading: Image.asset("assets/images/aiclop.png"),
+          automaticallyImplyLeading: true,
         ),
         body: Column(
           children: [

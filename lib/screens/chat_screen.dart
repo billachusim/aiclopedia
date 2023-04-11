@@ -91,10 +91,7 @@ class _ChatScreenState extends State<ChatScreen> {
       child: Scaffold(
         appBar: AppBar(
           elevation: 2,
-          leading: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Image.asset("assets/images/aiclop.png"),
-          ),
+          automaticallyImplyLeading: true,
           title: const Text("Ask Anything"),
           actions: [
             IconButton(
@@ -166,7 +163,7 @@ class _ChatScreenState extends State<ChatScreen> {
                             }
                           },
                           decoration: const InputDecoration.collapsed(
-                              hintText: "What's the second law of motion?",
+                              hintText: "Ask me anything. I mean anything!",
                               hintStyle: TextStyle(color: Colors.grey)),
                         ),
                       ),

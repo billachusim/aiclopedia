@@ -60,10 +60,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: Text('My Questions'),
-          leading: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Image.asset("assets/images/aiclop.png"),
-          ),
+          automaticallyImplyLeading: true,
         ),
         body: Column(
           children: [

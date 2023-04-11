@@ -1,8 +1,6 @@
 import 'package:AiClopedia/screens/login/login.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
@@ -19,9 +17,6 @@ SharedPreferences? prefs;
 class FirebaseServices extends ChangeNotifier {
   /// create instance of Firestore
   FirebaseFirestore _firebaseFirestore = FirebaseFirestore.instance;
-
-  /// create instance of FirebaseMessaging
-  FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
 
   User? currentUser = FirebaseAuth.instance.currentUser;
   final String usersKey = 'user';
@@ -208,7 +203,7 @@ class FirebaseServices extends ChangeNotifier {
         'nickname': nickname,
         'nameOfSchool': nameOfSchool,
         'question': question,
-        'answer': 'loading',
+        'answer': 'Tap open to load answer',
         'questionId': questionId,
         'isFeatured': false,
         'timestamp': FieldValue.serverTimestamp(),
