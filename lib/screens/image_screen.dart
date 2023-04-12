@@ -12,7 +12,6 @@ import '../constants/constants.dart';
 import '../providers/chats_provider.dart';
 import '../services/ad_state.dart';
 import '../services/firebaseServices.dart';
-import '../services/services.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/image_widget.dart';
 
@@ -93,14 +92,6 @@ class _ImageScreenState extends State<ImageScreen> {
           elevation: 2,
           automaticallyImplyLeading: true,
           title: const Text("Ask Anything"),
-          actions: [
-            IconButton(
-              onPressed: () async {
-                await Services.showModalSheet(context: context);
-              },
-              icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
-            ),
-          ],
         ),
         body: SafeArea(
           child: Column(

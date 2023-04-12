@@ -1,4 +1,5 @@
 import 'package:AiClopedia/screens/question_details.dart';
+import 'package:AiClopedia/services/firebaseServices.dart';
 import 'package:AiClopedia/widgets/bottom_nav.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 import '../models/questionModel.dart';
 import '../services/ad_state.dart';
+import 'login/login.dart';
 
 class ActivitiesScreen extends StatefulWidget {
 
@@ -18,6 +20,7 @@ class ActivitiesScreen extends StatefulWidget {
 
 class _ActivitiesScreenState extends State<ActivitiesScreen> {
   var currentUser = FirebaseAuth.instance.currentUser;
+  FirebaseServices firebaseServices = FirebaseServices();
 
   BannerAd? activitiesScreenTopBanner;
   bool _bannerIsLoaded = false;
@@ -46,6 +49,47 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
     });
   }
 
+  deleteAccountAlertDialog(BuildContext context) {
+
+    // set up the buttons
+    Widget cancelButton = TextButton(
+      child: Text("NO, WAIT!"),
+      onPressed:  () {
+        Navigator.of(context).pop();
+      },
+    );
+
+    Widget continueButton = TextButton(
+      child: Text("YES, DELETE EGO."),
+      onPressed:  () {
+        firebaseServices.deleteEgoAccount(context, currentUser!.uid);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => LoginPage()),
+        );
+        },
+    );
+
+    // set up the AlertDialog
+    AlertDialog alert = AlertDialog(
+      title: Text("Delete your account and all your data?"),
+      content: Text("Do you really want to delete your account and all your data?"),
+      actions: [
+        cancelButton,
+        continueButton,
+      ],
+    );
+
+    // show the dialog
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return alert;
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -61,6 +105,23 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
         appBar: AppBar(
           title: Text('My Questions'),
           automaticallyImplyLeading: true,
+          actions: [
+            PopupMenuButton(
+              itemBuilder: (BuildContext context) => [
+                PopupMenuItem(
+                  child: Text('Delete Account'),
+                  value: 'delete',
+                ),
+              ],
+              onSelected: (value) {
+                // Handle item selection
+                if (value == 'delete') {
+                  // Handle settings selection
+                  deleteAccountAlertDialog(context);
+                }
+              },
+            ),
+          ],
         ),
         body: Column(
           children: [

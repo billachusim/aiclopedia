@@ -255,6 +255,22 @@ class FirebaseServices extends ChangeNotifier {
   }
 
 
+  /// [delete] all users informations
+  void deleteEgoAccount(BuildContext context, String userId) async {
+    await FirebaseAuth.instance.signOut();
+    await prefs!.clear();
+    final _userId = userId;
+    final collection = FirebaseFirestore.instance
+        .collection('users');
+    await collection.doc(_userId).delete();
+    logger.d('Successfully deleted an account');
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (context) => LoginPage()),
+    );  }
+
+
 }
 
 

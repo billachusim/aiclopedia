@@ -13,7 +13,6 @@ import 'package:AiClopedia/services/helper.dart';
 import '../models/questionModel.dart';
 import '../services/ad_state.dart';
 import '../services/firebaseServices.dart';
-import '../services/services.dart';
 import 'login/login.dart';
 
 class Homepage extends StatefulWidget {
@@ -126,14 +125,6 @@ class _HomepageState extends State<Homepage> {
               child: Image.asset("assets/images/aiclop.png")
           ),
           title: const Text("Ai Clopedia"),
-          actions: [
-            IconButton(
-              onPressed: () async {
-                await Services.showModalSheet(context: context);
-              },
-              icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
-            ),
-          ],
         ),
         body: Stack(
           fit: StackFit.expand,
@@ -217,7 +208,7 @@ class _HomepageState extends State<Homepage> {
                   alignment: Alignment.topLeft,
                   child: Container(
                     margin: EdgeInsets.only(left: 16),
-                    width: 170,
+                    width: 185,
                     alignment: Alignment.topLeft,
                     padding: EdgeInsets.all(3),
                     decoration: BoxDecoration(
@@ -226,7 +217,7 @@ class _HomepageState extends State<Homepage> {
                     ),
                     child: Container(
                       height: 22,
-                      width: 155,
+                      width: 170,
                       decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(20)

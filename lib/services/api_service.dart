@@ -34,7 +34,6 @@ class ApiService {
     }
   }
 
-  // Send Message using ChatGPT API
   static Future<List<ChatModel>> sendMessageGPT(
       {required String message, required String modelId}) async {
     try {

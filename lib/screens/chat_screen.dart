@@ -5,7 +5,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:AiClopedia/constants/constants.dart';
 import 'package:AiClopedia/providers/chats_provider.dart';
-import 'package:AiClopedia/services/services.dart';
 import 'package:AiClopedia/widgets/chat_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
@@ -93,14 +92,6 @@ class _ChatScreenState extends State<ChatScreen> {
           elevation: 2,
           automaticallyImplyLeading: true,
           title: const Text("Ask Anything"),
-          actions: [
-            IconButton(
-              onPressed: () async {
-                await Services.showModalSheet(context: context);
-              },
-              icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
-            ),
-          ],
         ),
         body: SafeArea(
           child: Column(
