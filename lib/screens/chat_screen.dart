@@ -80,6 +80,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final chatProvider = Provider.of<ChatProvider>(context);
     return WillPopScope(
       onWillPop: (){
+        chatProvider.chatList.clear();
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -91,7 +92,7 @@ class _ChatScreenState extends State<ChatScreen> {
         appBar: AppBar(
           elevation: 2,
           automaticallyImplyLeading: true,
-          title: const Text("Ask Anything"),
+          title: const Text("Ask AI Anything"),
         ),
         body: SafeArea(
           child: Column(

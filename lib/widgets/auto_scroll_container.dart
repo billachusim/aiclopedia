@@ -98,7 +98,8 @@ final List<String> poems = [
 
 
 class AutoScrollContainer extends StatefulWidget {
-  const AutoScrollContainer({Key? key}) : super(key: key);
+  final String nickname;
+  const AutoScrollContainer({Key? key, required this.nickname}) : super(key: key);
 
   @override
   _AutoScrollContainerState createState() => _AutoScrollContainerState();
@@ -117,6 +118,7 @@ class _AutoScrollContainerState extends State<AutoScrollContainer> {
 
   @override
   Widget build(BuildContext context) {
+    final _nickname = widget.nickname;
     final Random random = Random();
     final int index = random.nextInt(poems.length);
     return Container(
@@ -141,7 +143,7 @@ class _AutoScrollContainerState extends State<AutoScrollContainer> {
             Padding(
               padding: const EdgeInsets.only(top: 8.0),
               child: Text(
-                "Ai, write a short poem to encourage me.",
+                "Hello, $_nickname A fresh poem to encourage you.",
                 style: TextStyle(
                   color: Colors.white70,
                   fontSize: 16,
@@ -170,7 +172,11 @@ class _AutoScrollContainerState extends State<AutoScrollContainer> {
                           animatedTexts: [
                             TypewriterAnimatedText(
                               poems[index],
-                              textStyle: TextStyle(fontSize: 14),
+                              textStyle: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                fontStyle: FontStyle.italic
+                              ),
                               speed: Duration(milliseconds: 80),
                             ),
                           ],
@@ -178,7 +184,7 @@ class _AutoScrollContainerState extends State<AutoScrollContainer> {
                           //pause: Duration(seconds: 1),
                           onFinished: () {
                             // After the text animation finishes, reset the scroll position and text height
-                            _scrollController.jumpTo(0);
+                            _scrollController.jumpTo(1);
                             _textHeight.value = 0;
                           },
                         ),

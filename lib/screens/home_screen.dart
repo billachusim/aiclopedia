@@ -11,8 +11,10 @@ import 'package:AiClopedia/screens/chat_screen.dart';
 import 'package:AiClopedia/services/helper.dart';
 
 import '../models/questionModel.dart';
+import '../models/userModel.dart';
 import '../services/ad_state.dart';
 import '../services/firebaseServices.dart';
+import '../widgets/question_widget.dart';
 import 'login/login.dart';
 
 class Homepage extends StatefulWidget {
@@ -29,11 +31,13 @@ class _HomepageState extends State<Homepage> {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final FirebaseServices firebaseServices = FirebaseServices();
   var currentUser = FirebaseAuth.instance.currentUser;
+  String nickname = '';
 
   @override
   void initState() {
     super.initState();
     AppTrackingTransparency.requestTrackingAuthorization();
+    getUser();
   }
 
 
@@ -41,6 +45,11 @@ class _HomepageState extends State<Homepage> {
   @override
   void dispose() {
     super.dispose();
+  }
+
+  void getUser() async {
+    final UserModel user = await firebaseServices.getUserInfo();
+    nickname = user.nickname;
   }
 
 
@@ -91,7 +100,7 @@ class _HomepageState extends State<Homepage> {
     });
   }
 
-  Stream<List<Question>> getQuestions(String? userId) {
+  Stream<List<Question>> getQuestions() {
     return FirebaseFirestore.instance
         .collection('questions')
         .where("isFeatured", isEqualTo: true)
@@ -150,7 +159,7 @@ class _HomepageState extends State<Homepage> {
 
                 SizedBox(height: 4,),
 
-                AutoScrollContainer(),
+                AutoScrollContainer(nickname: nickname),
 
                 SizedBox(height: 75,),
 
@@ -179,6 +188,14 @@ class _HomepageState extends State<Homepage> {
                         decoration: BoxDecoration(
                             color: Colors.yellow,
                             borderRadius: BorderRadius.circular(10),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.lightGreen.withOpacity(0.9),
+                                spreadRadius: 2,
+                                blurRadius: 3,
+                                offset: Offset(0, 3), // changes position of shadow
+                              ),
+                            ],
                             gradient: LinearGradient(
                                 colors: const [
                                   Colors.green,
@@ -202,7 +219,7 @@ class _HomepageState extends State<Homepage> {
                   ],
                 ),
 
-                SizedBox(height: 30,),
+                SizedBox(height: 50,),
 
                 Align(
                   alignment: Alignment.topLeft,
@@ -212,8 +229,22 @@ class _HomepageState extends State<Homepage> {
                     alignment: Alignment.topLeft,
                     padding: EdgeInsets.all(3),
                     decoration: BoxDecoration(
-                        color: Colors.green,
-                        borderRadius: BorderRadius.circular(25)
+                        color: Colors.yellow,
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black12.withOpacity(0.9),
+                            spreadRadius: 2,
+                            blurRadius: 3,
+                            offset: Offset(0, 3), // changes position of shadow
+                          ),
+                        ],
+                        gradient: LinearGradient(
+                            colors: const [
+                              Colors.lightGreenAccent,
+                              Colors.green,
+                            ]
+                        )
                     ),
                     child: Container(
                       height: 22,
@@ -240,13 +271,14 @@ class _HomepageState extends State<Homepage> {
 
                 Container(
                   margin: EdgeInsets.all(16),
-                  height: 220,
+                  height: 400,
                   width: getDeviceWidth(context),
                   decoration: BoxDecoration(
-                    color: Colors.green,
+                    //color: Colors.green,
+                    borderRadius: BorderRadius.circular(5),
                   ),
                   child: StreamBuilder<List<Question>>(
-                    stream: getQuestions(currentUser?.uid),
+                    stream: getQuestions(),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return Center(
@@ -269,8 +301,7 @@ class _HomepageState extends State<Homepage> {
                           final question = snapshot.data![index];
                           return GestureDetector(
                             onTap: () async {
-                              // Navigate to the QuestionDetails screen and wait for a result.
-                              final result = await Navigator.push(
+                              Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => QuestionDetails(question: question),
@@ -280,33 +311,7 @@ class _HomepageState extends State<Homepage> {
                               // Handle the result, if needed.
                               // For example, you could refresh the question list if the user edited the question.
                             },
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(8.0),
-                                color: Colors.grey[200],
-                              ),
-                              margin: EdgeInsets.symmetric(vertical: 7.0, horizontal: 8.0),
-                              padding: EdgeInsets.all(4.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    question.question,
-                                    style: TextStyle(
-                                      fontSize: 14.0,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  SizedBox(height: 2.0),
-                                  Text(
-                                    "${question.nickname}, ${question.nameOfSchool}. | ${question.timestamp}",
-                                    style: TextStyle(
-                                      fontSize: 12.0,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            child: QuestionWidget(question: question,)
                           );
                         },
                       );

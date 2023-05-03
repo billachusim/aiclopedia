@@ -206,8 +206,10 @@ class FirebaseServices extends ChangeNotifier {
         'answer': 'Tap open to load answer',
         'questionId': questionId,
         'isFeatured': false,
+        'thumbsUpCount': 0,
+        'thumbsDownCount': 0,
         'timestamp': FieldValue.serverTimestamp(),
-      });
+      },SetOptions(merge: true));
     } catch (e) {
       print('Error sending question: $e');
     }
@@ -256,7 +258,7 @@ class FirebaseServices extends ChangeNotifier {
 
 
   /// [delete] all users informations
-  void deleteEgoAccount(BuildContext context, String userId) async {
+  void deleteUserAccount(BuildContext context, String userId) async {
     await FirebaseAuth.instance.signOut();
     await prefs!.clear();
     final _userId = userId;

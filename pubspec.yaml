@@ -5,7 +5,7 @@ description: A new Flutter project.
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
-version: 1.8.0+9
+version: 2.0.0+11
 
 environment:
   sdk: '>=2.18.6 <3.0.0'
@@ -48,6 +48,8 @@ dependencies:
   app_tracking_transparency: ^2.0.3
   uuid: ^3.0.4
   chat_gpt_flutter: ^1.0.8
+  flutter_linkify: ^5.0.2
+  url_launcher: ^6.0.9
 
 
 dev_dependencies:

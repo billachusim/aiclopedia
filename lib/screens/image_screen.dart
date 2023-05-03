@@ -80,6 +80,7 @@ class _ImageScreenState extends State<ImageScreen> {
     final chatProvider = Provider.of<ChatProvider>(context);
     return WillPopScope(
       onWillPop: (){
+        chatProvider.chatList.clear();
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -91,7 +92,7 @@ class _ImageScreenState extends State<ImageScreen> {
         appBar: AppBar(
           elevation: 2,
           automaticallyImplyLeading: true,
-          title: const Text("Ask Anything"),
+          title: const Text("Get Any Image"),
         ),
         body: SafeArea(
           child: Column(

@@ -8,6 +8,8 @@ class Question {
   final String question;
   final String answer;
   final String imageUrl;
+  final int thumbsUpCount;
+  final int thumbsDownCount;
   final DateTime timestamp;
   final bool isFeatured;
 
@@ -18,6 +20,8 @@ class Question {
     required this.question,
     required this.answer,
     required this.imageUrl,
+    required this.thumbsUpCount,
+    required this.thumbsDownCount,
     required this.timestamp,
     required this.isFeatured,
     required this.questionId,
@@ -31,6 +35,8 @@ class Question {
       question: json['question'],
       answer: json['answer'] ?? '',
       imageUrl: json['imageUrl'] ?? '',
+      thumbsUpCount: json['thumbsUpCount'] ?? 0,
+      thumbsDownCount: json['thumbsDownCount'] ?? 0,
       questionId: json['questionId'] ?? '',
       timestamp: (json['timestamp'] as Timestamp).toDate(),
       isFeatured: json['isFeatured'] ?? false,

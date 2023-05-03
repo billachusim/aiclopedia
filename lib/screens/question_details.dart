@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
+import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:http/http.dart' as http;
 import 'package:AiClopedia/models/questionModel.dart';
@@ -8,6 +9,7 @@ import 'package:chat_gpt_flutter/chat_gpt_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../constants/api_consts.dart';
 import '../services/ad_state.dart';
@@ -164,7 +166,7 @@ class _QuestionDetailsState extends State<QuestionDetails> {
             else
               SizedBox(height: 70, child: Text('Relevant ads only', style: TextStyle(color: Colors.white),),),
 
-            Text(
+            SelectableText(
               question.question,
               style: TextStyle(
                 fontSize: 22.0,
@@ -179,8 +181,17 @@ class _QuestionDetailsState extends State<QuestionDetails> {
               )
             else
               Container(
-                child: SelectableText(
-                  _answer ?? '',
+                child: SelectableLinkify(
+                  text: _answer ?? '',
+                  onOpen: (link) async {
+                    final Uri url = Uri.parse("${link.url}");
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(url);
+                    } else {
+                      throw 'Could not launch $link';
+                    }
+                  },
+                  linkStyle: TextStyle(color: Colors.blue),
                   style: TextStyle(
                     fontSize: 16.0,
                     color: Colors.white,
@@ -197,7 +208,7 @@ class _QuestionDetailsState extends State<QuestionDetails> {
             ),
             SizedBox(height: 4.0),
             Text(
-              'Name of School: ${question.nameOfSchool}',
+              'From: ${question.nameOfSchool}',
               style: TextStyle(
                 fontSize: 14.0,
                 color: Colors.white70,

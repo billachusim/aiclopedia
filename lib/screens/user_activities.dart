@@ -62,7 +62,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
     Widget continueButton = TextButton(
       child: Text("YES, DELETE EGO."),
       onPressed:  () {
-        firebaseServices.deleteEgoAccount(context, currentUser!.uid);
+        firebaseServices.deleteUserAccount(context, currentUser!.uid);
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -166,8 +166,16 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                         },
                         child: Container(
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8.0),
-                            color: Colors.grey[200],
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black12.withOpacity(0.9),
+                                spreadRadius: 2,
+                                blurRadius: 3,
+                                offset: Offset(0, 3), // changes position of shadow
+                              ),
+                            ],
+                            borderRadius: BorderRadius.circular(10),
+                            color: Colors.white70,
                           ),
                           margin: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
                           padding: EdgeInsets.all(16.0),

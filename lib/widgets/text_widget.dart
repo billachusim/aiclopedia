@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_linkify/flutter_linkify.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class TextWidget extends StatelessWidget {
   const TextWidget(
@@ -15,9 +17,17 @@ class TextWidget extends StatelessWidget {
   final FontWeight? fontWeight;
   @override
   Widget build(BuildContext context) {
-    return Text(
-      label,
-      // textAlign: TextAlign.justify,
+    return SelectableLinkify(
+      text: label,
+      onOpen: (link) async {
+        final Uri url = Uri.parse("${link.url}");
+        if (await canLaunchUrl(url)) {
+          await launchUrl(url);
+        } else {
+          throw 'Could not launch $link';
+        }
+      },
+      linkStyle: TextStyle(color: Colors.blue),
       style: TextStyle(
         color: color ?? Colors.white,
         fontSize: fontSize,
