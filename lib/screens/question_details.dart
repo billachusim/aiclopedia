@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
+import 'dart:io';
 import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:http/http.dart' as http;
@@ -24,23 +25,75 @@ class QuestionDetails extends StatefulWidget {
   _QuestionDetailsState createState() => _QuestionDetailsState();
 }
 
+const int maxFailedLoadAttempts = 3;
+
 class _QuestionDetailsState extends State<QuestionDetails> {
   final FirebaseServices firebaseServices = FirebaseServices();
   final chatGpt = ChatGpt(apiKey: '$API_KEY');
   String? _answer;
   String generatedImageUrl = '';
   bool _isLoading = false;
+  bool showImage = false;
 
   @override
   void initState() {
     super.initState();
+    _createInterstitialAd();
     _getAnswer();
-    generateImage(widget.question.question);
   }
 
   @override
   void dispose() {
+    _interstitialAd?.dispose();
     super.dispose();
+  }
+
+
+
+  InterstitialAd? _interstitialAd;
+  int _interstitialLoadAttempts = 0;
+
+  // Create interstitial ad.
+
+  void _createInterstitialAd() {
+    InterstitialAd.load(
+      adUnitId: Platform.isAndroid
+          ? "ca-app-pub-2404156870680632/4294045529"
+          : Platform.isIOS
+          ? "ca-app-pub-2404156870680632/4034191073"
+          : '',
+      request: AdRequest(),
+      adLoadCallback: InterstitialAdLoadCallback(
+        onAdLoaded: (InterstitialAd ad) {
+          _interstitialAd = ad;
+          _interstitialLoadAttempts = 0;
+        },
+        onAdFailedToLoad: (LoadAdError error) {
+          print('Failed to load an interstitial ad: ${error.message}');
+          _interstitialLoadAttempts += 1;
+          _interstitialAd = null;
+          if (_interstitialLoadAttempts <= maxFailedLoadAttempts) {
+            _createInterstitialAd();
+          }
+        },
+      ),
+    );
+  }
+
+  void _showInterstitialAd() {
+    if (_interstitialAd != null) {
+      _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
+        onAdDismissedFullScreenContent: (InterstitialAd ad) {
+          ad.dispose();
+          _createInterstitialAd();
+        },
+        onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError error) {
+          ad.dispose();
+          _createInterstitialAd();
+        },
+      );
+      _interstitialAd!.show();
+    }
   }
 
 
@@ -231,6 +284,58 @@ class _QuestionDetailsState extends State<QuestionDetails> {
               ),
             ),
             SizedBox(height: 20.0),
+            GestureDetector(
+              onTap: () async {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Creating image; might see an ad.'),
+                  ),
+                );
+                await generateImage(widget.question.question);
+                if (generatedImageUrl.length>11) {
+                  showImage = true;
+                  setState(() {});
+                }
+                Future.delayed(Duration(seconds: 4), () {
+                  _showInterstitialAd();
+                });
+                },
+              child: Container(
+                margin: EdgeInsets.only(bottom: 6),
+                padding: EdgeInsets.all(5),
+                width: 115,
+                height: 30,
+                decoration: BoxDecoration(
+                    color: Colors.yellow,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.lightGreen.withOpacity(0.9),
+                        spreadRadius: 2,
+                        blurRadius: 3,
+                        offset: Offset(0, 3), // changes position of shadow
+                      ),
+                    ],
+                    gradient: LinearGradient(
+                        colors: const [
+                          Colors.green,
+                          Colors.lightGreenAccent,
+                        ]
+                    )
+                ),
+                child: Center(
+                  child: Text('Show Image',
+                    style: TextStyle(
+                        fontSize: 16.0,
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ),
+
+            SizedBox(height: 8.0),
+
             Visibility(
               visible: generatedImageUrl.length>11,
               child: Container(
@@ -239,6 +344,7 @@ class _QuestionDetailsState extends State<QuestionDetails> {
                 ),
               ),
             ),
+
             SizedBox(height: 8.0),
 
             // Top ad unit is here

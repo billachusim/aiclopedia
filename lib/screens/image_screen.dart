@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
@@ -22,20 +24,26 @@ class ImageScreen extends StatefulWidget {
   _ImageScreenState createState() => _ImageScreenState();
 }
 
+const int maxFailedLoadAttempts = 3;
+
+
 class _ImageScreenState extends State<ImageScreen> {
   String generatedImageUrl = '';
   List<Widget> chatList = [];
   final FirebaseServices firebaseServices = FirebaseServices();
   bool isTyping = false;
-
   late TextEditingController textEditingController;
   late ScrollController _listScrollController;
   late FocusNode focusNode;
+
+
+
   @override
   void initState() {
     _listScrollController = ScrollController();
     textEditingController = TextEditingController();
     focusNode = FocusNode();
+    _createInterstitialAd();
     super.initState();
   }
 
@@ -44,8 +52,59 @@ class _ImageScreenState extends State<ImageScreen> {
     _listScrollController.dispose();
     textEditingController.dispose();
     focusNode.dispose();
+    _interstitialAd?.dispose();
     super.dispose();
   }
+
+
+
+  InterstitialAd? _interstitialAd;
+  int _interstitialLoadAttempts = 0;
+
+  // Create interstitial ad.
+
+  void _createInterstitialAd() {
+    InterstitialAd.load(
+      adUnitId: Platform.isAndroid
+          ? "ca-app-pub-2404156870680632/9546372208"
+          : Platform.isIOS
+          ? "ca-app-pub-2404156870680632/5347272743"
+          : '',
+      request: AdRequest(),
+      adLoadCallback: InterstitialAdLoadCallback(
+        onAdLoaded: (InterstitialAd ad) {
+          _interstitialAd = ad;
+          _interstitialLoadAttempts = 0;
+        },
+        onAdFailedToLoad: (LoadAdError error) {
+          print('Failed to load an interstitial ad: ${error.message}');
+          _interstitialLoadAttempts += 1;
+          _interstitialAd = null;
+          if (_interstitialLoadAttempts <= maxFailedLoadAttempts) {
+            _createInterstitialAd();
+          }
+        },
+      ),
+    );
+  }
+
+  void _showInterstitialAd() {
+    if (_interstitialAd != null) {
+      _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
+        onAdDismissedFullScreenContent: (InterstitialAd ad) {
+          ad.dispose();
+          _createInterstitialAd();
+        },
+        onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError error) {
+          ad.dispose();
+          _createInterstitialAd();
+        },
+      );
+      _interstitialAd!.show();
+    }
+  }
+
+
 
   BannerAd? imageScreenTopBanner;
   bool _bannerIsLoaded = false;
@@ -164,6 +223,11 @@ class _ImageScreenState extends State<ImageScreen> {
                       ),
                       IconButton(
                           onPressed: () async {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Creating image; might see an ad.'),
+                              ),
+                            );
                             final question = textEditingController.text.trim();
                             final user = await firebaseServices.getUserInfo();
                             setState(() {
@@ -171,11 +235,6 @@ class _ImageScreenState extends State<ImageScreen> {
                             });
                             await generateImage(question);
                             await firebaseServices.saveQuestion(user, question);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Question saved'),
-                              ),
-                            );
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -183,6 +242,9 @@ class _ImageScreenState extends State<ImageScreen> {
                             );
                             textEditingController.clear();
                             isTyping = false;
+                            Future.delayed(Duration(seconds: 4), () {
+                              _showInterstitialAd();
+                            });
                           },
                           icon: const Icon(
                             Icons.send,

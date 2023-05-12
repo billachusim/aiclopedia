@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:AiClopedia/screens/question_details.dart';
 import 'package:AiClopedia/services/firebaseServices.dart';
 import 'package:AiClopedia/widgets/bottom_nav.dart';
@@ -18,12 +20,80 @@ class ActivitiesScreen extends StatefulWidget {
   _ActivitiesScreenState createState() => _ActivitiesScreenState();
 }
 
+const int maxFailedLoadAttempts = 3;
+
+
 class _ActivitiesScreenState extends State<ActivitiesScreen> {
   var currentUser = FirebaseAuth.instance.currentUser;
   FirebaseServices firebaseServices = FirebaseServices();
 
   BannerAd? activitiesScreenTopBanner;
   bool _bannerIsLoaded = false;
+
+
+
+  @override
+  void initState() {
+    _createInterstitialAd();
+    super.initState();
+  }
+
+
+  @override
+  void dispose() {
+    _interstitialAd?.dispose();
+    super.dispose();
+  }
+
+
+
+  InterstitialAd? _interstitialAd;
+  int _interstitialLoadAttempts = 0;
+
+  // Create interstitial ad.
+
+  void _createInterstitialAd() {
+    InterstitialAd.load(
+      adUnitId: Platform.isAndroid
+          ? "ca-app-pub-2404156870680632/6302111828"
+          : Platform.isIOS
+          ? "ca-app-pub-2404156870680632/5886290801"
+          : '',
+      request: AdRequest(),
+      adLoadCallback: InterstitialAdLoadCallback(
+        onAdLoaded: (InterstitialAd ad) {
+          _interstitialAd = ad;
+          _interstitialLoadAttempts = 0;
+        },
+        onAdFailedToLoad: (LoadAdError error) {
+          print('Failed to load an interstitial ad: ${error.message}');
+          _interstitialLoadAttempts += 1;
+          _interstitialAd = null;
+          if (_interstitialLoadAttempts <= maxFailedLoadAttempts) {
+            _createInterstitialAd();
+          }
+        },
+      ),
+    );
+  }
+
+  void _showInterstitialAd() {
+    if (_interstitialAd != null) {
+      _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
+        onAdDismissedFullScreenContent: (InterstitialAd ad) {
+          ad.dispose();
+          _createInterstitialAd();
+        },
+        onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError error) {
+          ad.dispose();
+          _createInterstitialAd();
+        },
+      );
+      _interstitialAd!.show();
+    }
+  }
+
+
 
   @override
   void didChangeDependencies() {
@@ -156,6 +226,11 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                       final question = snapshot.data![index];
                       return GestureDetector(
                         onTap: () async {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Getting answers; might see an ad.'),
+                            ),
+                          );
                           // Navigate to the QuestionDetails screen and wait for a result.
                           Navigator.push(
                             context,
@@ -163,6 +238,9 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                               builder: (context) => QuestionDetails(question: question),
                             ),
                           );
+                          Future.delayed(Duration(seconds: 4), () {
+                            _showInterstitialAd();
+                          });
                         },
                         child: Container(
                           decoration: BoxDecoration(

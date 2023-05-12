@@ -146,7 +146,6 @@ class FirebaseServices extends ChangeNotifier {
 
   /// cache user id
   void setUsersId(String id) async {
-    //await getUserWithId(id: id);
     prefs = await SharedPreferences.getInstance();
     prefs!.setString(usersKey, id);
     notifyListeners();
@@ -181,7 +180,7 @@ class FirebaseServices extends ChangeNotifier {
   /// Get user info
 
   Future<UserModel> getUserInfo() async {
-    _usersID = await getUsersId();
+    _usersID = currentUser?.uid;
     DocumentSnapshot response = await _firebaseFirestore
         .collection("users")
         .doc(_usersID)

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:AiClopedia/screens/all_activities.dart';
 import 'package:AiClopedia/screens/question_details.dart';
 import 'package:AiClopedia/widgets/auto_scroll_container.dart';
@@ -27,6 +29,9 @@ class Homepage extends StatefulWidget {
   State<Homepage> createState() => _HomepageState();
 }
 
+const int maxFailedLoadAttempts = 3;
+
+
 class _HomepageState extends State<Homepage> {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final FirebaseServices firebaseServices = FirebaseServices();
@@ -37,6 +42,7 @@ class _HomepageState extends State<Homepage> {
   void initState() {
     super.initState();
     AppTrackingTransparency.requestTrackingAuthorization();
+    _createInterstitialAd();
     getUser();
   }
 
@@ -44,13 +50,68 @@ class _HomepageState extends State<Homepage> {
 
   @override
   void dispose() {
+    _interstitialAd?.dispose();
+    _featuredQuestionInterstitialAd?.dispose();
     super.dispose();
   }
+
 
   void getUser() async {
     final UserModel user = await firebaseServices.getUserInfo();
     nickname = user.nickname;
   }
+
+
+
+
+  RewardedInterstitialAd? _interstitialAd;
+  int _interstitialLoadAttempts = 0;
+
+  // Create interstitial ad.
+
+  void _createInterstitialAd() {
+    RewardedInterstitialAd.load(
+      adUnitId: Platform.isAndroid
+          ? "ca-app-pub-2404156870680632/8755996723"
+          : Platform.isIOS
+          ? "ca-app-pub-2404156870680632/6851888112"
+          : '',
+      request: AdRequest(),
+      rewardedInterstitialAdLoadCallback: RewardedInterstitialAdLoadCallback(
+        onAdLoaded: (RewardedInterstitialAd ad) {
+          _interstitialAd = ad;
+          _interstitialLoadAttempts = 0;
+        },
+        onAdFailedToLoad: (LoadAdError error) {
+          print('Failed to load an interstitial ad: ${error.message}');
+          _interstitialLoadAttempts += 1;
+          _interstitialAd = null;
+          if (_interstitialLoadAttempts <= maxFailedLoadAttempts) {
+            _createInterstitialAd();
+          }
+        },
+      ),
+    );
+  }
+
+  void _showInterstitialAd() {
+    if (_interstitialAd != null) {
+      _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
+        onAdDismissedFullScreenContent: (RewardedInterstitialAd ad) {
+          ad.dispose();
+          _createInterstitialAd();
+        },
+        onAdFailedToShowFullScreenContent: (RewardedInterstitialAd ad, AdError error) {
+          ad.dispose();
+          _createInterstitialAd();
+        },
+      );
+      _interstitialAd!.show(onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {  });
+    }
+  }
+
+
+
 
 
   // Admob Ad Units.
@@ -181,6 +242,9 @@ class _HomepageState extends State<Homepage> {
                                 builder: (context) => ChatScreen()),
                           );
                         }
+                        Future.delayed(Duration(seconds: 4), () {
+                          _showInterstitialAd();
+                        });
                       },
                       child: Container(
                         height: 60,
@@ -301,15 +365,20 @@ class _HomepageState extends State<Homepage> {
                           final question = snapshot.data![index];
                           return GestureDetector(
                             onTap: () async {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Getting answers; might see an ad.'),
+                                ),
+                              );
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => QuestionDetails(question: question),
                                 ),
                               );
-
-                              // Handle the result, if needed.
-                              // For example, you could refresh the question list if the user edited the question.
+                              Future.delayed(Duration(seconds: 4), () {
+                                _showInterstitialAd();
+                              });
                             },
                             child: QuestionWidget(question: question,)
                           );
