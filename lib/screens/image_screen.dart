@@ -9,7 +9,6 @@ import 'dart:convert';
 
 import 'package:provider/provider.dart';
 
-import '../constants/api_consts.dart';
 import '../constants/constants.dart';
 import '../providers/chats_provider.dart';
 import '../services/ad_state.dart';
@@ -273,7 +272,7 @@ class _ImageScreenState extends State<ImageScreen> {
   Future<void> generateImage(String userInput) async {
     final url = Uri.parse('https://api.openai.com/v1/images/generations');
     final headers = {
-      'Authorization': 'Bearer $API_KEY',
+      'Authorization': 'Bearer ',
       'Content-Type': 'application/json'
     };
     final body = {'model': 'image-alpha-001', 'prompt': userInput, 'num_images': 1, 'size': '512x512'};

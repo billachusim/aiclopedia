@@ -6,13 +6,11 @@ import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:http/http.dart' as http;
 import 'package:AiClopedia/models/questionModel.dart';
-import 'package:chat_gpt_flutter/chat_gpt_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../constants/api_consts.dart';
 import '../services/ad_state.dart';
 import '../services/firebaseServices.dart';
 
@@ -29,7 +27,7 @@ const int maxFailedLoadAttempts = 3;
 
 class _QuestionDetailsState extends State<QuestionDetails> {
   final FirebaseServices firebaseServices = FirebaseServices();
-  final chatGpt = ChatGpt(apiKey: '$API_KEY');
+ // final chatGpt = ChatGpt(apiKey: '');
   String? _answer;
   String generatedImageUrl = '';
   bool _isLoading = false;
@@ -39,7 +37,7 @@ class _QuestionDetailsState extends State<QuestionDetails> {
   void initState() {
     super.initState();
     _createInterstitialAd();
-    _getAnswer();
+    //_getAnswer();
   }
 
   @override
@@ -98,7 +96,7 @@ class _QuestionDetailsState extends State<QuestionDetails> {
 
 
 
-  Future<void> _getAnswer() async {
+  /*Future<void> _getAnswer() async {
     setState(() {
       _isLoading = true;
     });
@@ -123,14 +121,14 @@ class _QuestionDetailsState extends State<QuestionDetails> {
       });
       log("Error occurred: $error");
     }
-  }
+  }*/
 
 
   Future<void> generateImage(String userInput) async {
     final String questionId = widget.question.questionId;
     final url = Uri.parse('https://api.openai.com/v1/images/generations');
     final headers = {
-      'Authorization': 'Bearer $API_KEY',
+      'Authorization': 'Bearer ',
       'Content-Type': 'application/json'
     };
     final body = {'model': 'image-alpha-001', 'prompt': userInput, 'num_images': 1, 'size': '512x512'};
