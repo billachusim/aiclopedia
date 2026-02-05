@@ -1,72 +1,81 @@
 import 'dart:io';
-
+import 'dart:ui';
 import 'package:AiClopedia/screens/question_details.dart';
 import 'package:AiClopedia/services/firebaseServices.dart';
-import 'package:AiClopedia/widgets/bottom_nav.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
+import '../app_theme.dart';
+import '../constants/scrollable_page.dart';
 import '../models/questionModel.dart';
 import '../services/ad_state.dart';
 import 'login/login.dart';
 
-class ActivitiesScreen extends StatefulWidget {
-
-  const ActivitiesScreen({Key? key,}) : super(key: key);
+// --- NEW: Change StatefulWidget to ScrollablePage ---
+class ActivitiesScreen extends ScrollablePage {
+  const ActivitiesScreen({Key? key}) : super(key: key);
 
   @override
-  _ActivitiesScreenState createState() => _ActivitiesScreenState();
+  // --- NEW: The State class now extends ScrollablePageState ---
+  ScrollablePageState<ActivitiesScreen> createState() => _ActivitiesScreenState();
 }
 
 const int maxFailedLoadAttempts = 3;
 
+// --- NEW: Extend from ScrollablePageState ---
+class _ActivitiesScreenState extends ScrollablePageState<ActivitiesScreen> {
+  final User? currentUser = FirebaseAuth.instance.currentUser;
+  final FirebaseServices firebaseServices = FirebaseServices();
 
-class _ActivitiesScreenState extends State<ActivitiesScreen> {
-  var currentUser = FirebaseAuth.instance.currentUser;
-  FirebaseServices firebaseServices = FirebaseServices();
+  // --- NEW: Add ScrollController ---
+  final ScrollController _scrollController = ScrollController();
 
   BannerAd? activitiesScreenTopBanner;
-  bool _bannerIsLoaded = false;
-
-
+  InterstitialAd? _interstitialAd;
+  int _interstitialLoadAttempts = 0;
 
   @override
   void initState() {
-    _createInterstitialAd();
     super.initState();
+    _createInterstitialAd();
   }
-
 
   @override
   void dispose() {
     _interstitialAd?.dispose();
+    activitiesScreenTopBanner?.dispose();
+    // --- NEW: Dispose ScrollController ---
+    _scrollController.dispose();
     super.dispose();
   }
 
+  // --- NEW: Implemented from ScrollablePageState ---
+  @override
+  void scrollToTop() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0.0,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
 
-
-  InterstitialAd? _interstitialAd;
-  int _interstitialLoadAttempts = 0;
-
-  // Create interstitial ad.
 
   void _createInterstitialAd() {
     InterstitialAd.load(
       adUnitId: Platform.isAndroid
           ? "ca-app-pub-2404156870680632/6302111828"
-          : Platform.isIOS
-          ? "ca-app-pub-2404156870680632/5886290801"
-          : '',
-      request: AdRequest(),
+          : "ca-app-pub-2404156870680632/5886290801",
+      request: const AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (InterstitialAd ad) {
           _interstitialAd = ad;
           _interstitialLoadAttempts = 0;
         },
         onAdFailedToLoad: (LoadAdError error) {
-          print('Failed to load an interstitial ad: ${error.message}');
           _interstitialLoadAttempts += 1;
           _interstitialAd = null;
           if (_interstitialLoadAttempts <= maxFailedLoadAttempts) {
@@ -78,259 +87,235 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
   }
 
   void _showInterstitialAd() {
-    if (_interstitialAd != null) {
-      _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
-        onAdDismissedFullScreenContent: (InterstitialAd ad) {
-          ad.dispose();
-          _createInterstitialAd();
-        },
-        onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError error) {
-          ad.dispose();
-          _createInterstitialAd();
-        },
-      );
-      _interstitialAd!.show();
-    }
+    if (_interstitialAd == null) return;
+    _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
+      onAdDismissedFullScreenContent: (InterstitialAd ad) {
+        ad.dispose();
+        _createInterstitialAd();
+      },
+      onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError error) {
+        ad.dispose();
+        _createInterstitialAd();
+      },
+    );
+    _interstitialAd!.show();
   }
-
-
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final adState = Provider.of<AdState>(context);
-
-    // Implement a top location banner ad unit.
-    adState.initialization.then((status) {
-      setState(() {
-        activitiesScreenTopBanner = BannerAd(
+    if (activitiesScreenTopBanner == null) {
+      final adState = Provider.of<AdState>(context);
+      adState.initialization.then((status) {
+        if (!mounted) return;
+        setState(() {
+          activitiesScreenTopBanner = BannerAd(
             size: AdSize.banner,
             adUnitId: adState.activitiesScreenTopBannerAdUnitId,
             request: const AdRequest(),
             listener: BannerAdListener(
-              onAdFailedToLoad: (ad, error) {
-                ad.dispose();
-              },
-            )
-        )
-          ..load();
-        _bannerIsLoaded = true;
+              onAdFailedToLoad: (ad, error) => ad.dispose(),
+            ),
+          )..load();
+        });
       });
-    });
+    }
   }
 
   deleteAccountAlertDialog(BuildContext context) {
-
-    // set up the buttons
     Widget cancelButton = TextButton(
-      child: Text("NO, WAIT!"),
-      onPressed:  () {
-        Navigator.of(context).pop();
-      },
+      child: const Text("CANCEL"),
+      onPressed: () => Navigator.of(context).pop(),
     );
 
     Widget continueButton = TextButton(
-      child: Text("YES, DELETE EGO."),
-      onPressed:  () {
+      child: const Text("DELETE", style: TextStyle(color: Colors.red)),
+      onPressed: () {
         firebaseServices.deleteUserAccount(context, currentUser!.uid);
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (context) => LoginPage()),
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => LoginPage()),
+              (Route<dynamic> route) => false,
         );
-        },
-    );
-
-    // set up the AlertDialog
-    AlertDialog alert = AlertDialog(
-      title: Text("Delete your account and all your data?"),
-      content: Text("Do you really want to delete your account and all your data?"),
-      actions: [
-        cancelButton,
-        continueButton,
-      ],
-    );
-
-    // show the dialog
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return alert;
       },
     );
+
+    AlertDialog alert = AlertDialog(
+      title: const Text("Delete Account?"),
+      content: const Text("This action is irreversible and will delete all your data."),
+      actions: [cancelButton, continueButton],
+    );
+
+    showDialog(context: context, builder: (BuildContext context) => alert);
   }
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: (){
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (context) => BottomNavBar()),
-        );
-        return Future.value(false);
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text('My Questions'),
-          automaticallyImplyLeading: true,
-          actions: [
-            PopupMenuButton(
-              itemBuilder: (BuildContext context) => [
-                PopupMenuItem(
-                  child: Text('Delete Account'),
-                  value: 'delete',
-                ),
-              ],
-              onSelected: (value) {
-                // Handle item selection
-                if (value == 'delete') {
-                  // Handle settings selection
-                  deleteAccountAlertDialog(context);
-                }
-              },
-            ),
-          ],
-        ),
-        body: Column(
-          children: [
-            // Top ad unit is here
-            if (activitiesScreenTopBanner != null && _bannerIsLoaded)
-              SizedBox(
-                height: 60,
-                child: AdWidget(ad: activitiesScreenTopBanner!),
-              )
-            else
-              SizedBox(height: 70, child: Text('Relevant ads only', style: TextStyle(color: Colors.white),),),
+    final theme = Theme.of(context);
+    // This handles the case where the user somehow lands here without being logged in.
+    if (currentUser == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('My Questions')),
+        body: const Center(child: Text("Please log in to see your activities.")),
+      );
+    }
 
-            StreamBuilder<List<Question>>(
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('My Questions'),
+        // Use theme colors for AppBar
+        backgroundColor: theme.appBarTheme.backgroundColor,
+        titleTextStyle: theme.appBarTheme.titleTextStyle,
+        iconTheme: theme.appBarTheme.iconTheme,
+        actions: [
+          PopupMenuButton(
+            color: theme.colorScheme.surface,
+            itemBuilder: (BuildContext context) => [
+              PopupMenuItem(
+                value: 'delete',
+                child: Text('Delete Account', style: TextStyle(color: theme.colorScheme.onSurface)),
+              ),
+            ],
+            onSelected: (value) {
+              if (value == 'delete') {
+                deleteAccountAlertDialog(context);
+              }
+            },
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          if (activitiesScreenTopBanner != null)
+            SizedBox(
+              height: activitiesScreenTopBanner!.size.height.toDouble(),
+              child: AdWidget(ad: activitiesScreenTopBanner!),
+            )
+          else
+            SizedBox(
+                height: 50,
+                child: Center(
+                    child: Text('Relevant ads only',
+                        style: theme.textTheme.bodySmall))),
+          Expanded(
+            child: StreamBuilder<List<Question>>(
               stream: getQuestions(currentUser!.uid),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(
-                    child: CircularProgressIndicator(),
-                  );
+                  return const Center(child: CircularProgressIndicator());
                 }
-
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Center(
-                    child: Text('No questions yet'),
-                  );
+                  return const Center(child: Text('You have not asked any questions yet.'));
                 }
-
-                return Flexible(
-                  child: ListView.builder(
-                    itemCount: snapshot.data!.length,
-                    itemBuilder: (context, index) {
-                      final question = snapshot.data![index];
-                      return GestureDetector(
-                        onTap: () async {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Getting answers; might see an ad.'),
-                            ),
-                          );
-                          // Navigate to the QuestionDetails screen and wait for a result.
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => QuestionDetails(question: question),
-                            ),
-                          );
-                          Future.delayed(Duration(seconds: 4), () {
-                            _showInterstitialAd();
-                          });
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black12.withOpacity(0.9),
-                                spreadRadius: 2,
-                                blurRadius: 3,
-                                offset: Offset(0, 3), // changes position of shadow
-                              ),
-                            ],
-                            borderRadius: BorderRadius.circular(10),
-                            color: Colors.white70,
-                          ),
-                          margin: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                          padding: EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                question.question,
-                                style: TextStyle(
-                                  fontSize: 18.0,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              SizedBox(height: 8.0),
-                              Text(
-                                'Answer: ${question.answer}',
-                                maxLines: 3,
-                                style: TextStyle(
-                                  fontSize: 14.0,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              SizedBox(height: 5.0),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Container(
-                                    child: Icon(
-                                      question.isFeatured == true ? Icons.lightbulb : Icons.lightbulb_outline,
-                                      color: Colors.green,
-                                      size: 26,
-                                    ),
-                                  ),
-
-                                  Container(
-                                    margin: EdgeInsets.only(bottom: 6),
-                                    padding: EdgeInsets.all(5),
-                                    width: 115,
-                                    height: 30,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(20.0),
-                                      gradient: LinearGradient(
-                                        begin: Alignment(-0.37857140550652835, -1.9473685559777252),
-                                        end: Alignment(1.2428571464417884, 2.526316110739735),
-                                        stops: [0.0, 0.856177031993866, 1.0],
-                                        colors: [
-                                          Colors.white54,
-                                          Colors.green,
-                                          Colors.lightGreenAccent,
-                                        ],
-                                      ),
-                                    ),
-                                    child: Center(
-                                      child: Text('O P E N',
-                                        style: TextStyle(
-                                            fontSize: 15.0,
-                                            color: Colors.green,
-                                            fontWeight: FontWeight.w700),
-                                      ),
-                                    ),
-                                  )
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                final questions = snapshot.data!;
+                return ListView.builder(
+                  // --- NEW: Assign ScrollController ---
+                  controller: _scrollController,
+                  itemCount: questions.length,
+                  itemBuilder: (context, index) {
+                    final question = questions[index];
+                    // --- NEW: Use a redesigned, theme-aware widget ---
+                    return _buildQuestionCard(context, question);
+                  },
                 );
               },
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- REVISED: Update the question card to a more refined UI ---
+  Widget _buildQuestionCard(BuildContext context, Question question) {
+    final theme = Theme.of(context);
+    final secondaryTextColor = theme.colorScheme.onSurface.withOpacity(0.7);
+
+    return GestureDetector(
+      onTap: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Getting answers; might see an ad.')),
+        );
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => QuestionDetails(question: question)),
+        );
+        Future.delayed(const Duration(seconds: 4), _showInterstitialAd);
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+            child: Container(
+              padding: const EdgeInsets.all(16.0),
+              decoration: BoxDecoration(
+                color: AppTheme.glassmorphismColor(context),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white.withOpacity(0.2)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    question.question,
+                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600, fontSize: 16),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8.0),
+                  if (question.answer.isNotEmpty)
+                    Text(
+                      'Answer: ${question.answer}',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14, color: secondaryTextColor),
+                    ),
+                  const Divider(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Featured Status Icon
+                      Row(
+                        children: [
+                          Icon(
+                            question.isFeatured ? Icons.star : Icons.star_border,
+                            color: question.isFeatured ? AppTheme.primaryGreen : secondaryTextColor,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            question.isFeatured ? 'Featured' : 'Standard',
+                            style: theme.textTheme.bodySmall?.copyWith(color: secondaryTextColor),
+                          ),
+                        ],
+                      ),
+                      // View Button
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20.0),
+                            color: AppTheme.primaryGreen.withOpacity(0.1),
+                            border: Border.all(color: AppTheme.primaryGreen)
+                        ),
+                        child: Text('VIEW DETAILS',
+                          style: TextStyle(
+                              fontSize: 12.0,
+                              color: AppTheme.primaryGreen,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      )
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
+
 
   Stream<List<Question>> getQuestions(String userId) {
     return FirebaseFirestore.instance
@@ -338,8 +323,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
         .where('userId', isEqualTo: userId)
         .orderBy('timestamp', descending: true)
         .snapshots()
-        .map((querySnapshot) => querySnapshot.docs
-        .map((doc) => Question.fromJson(doc.data()))
-        .toList());
+        .map((querySnapshot) =>
+        querySnapshot.docs.map((doc) => Question.fromJson(doc.data())).toList());
   }
 }

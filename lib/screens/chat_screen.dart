@@ -1,40 +1,39 @@
 import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
-import 'package:AiClopedia/widgets/bottom_nav.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:AiClopedia/constants/constants.dart';
 import 'package:AiClopedia/providers/chats_provider.dart';
 import 'package:AiClopedia/widgets/chat_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:provider/provider.dart';
 
-import '../providers/models_provider.dart';
+import '../constants/scrollable_page.dart';
 import '../services/ad_state.dart';
 import '../services/firebaseServices.dart';
 import '../widgets/text_widget.dart';
 
-class ChatScreen extends StatefulWidget {
+// --- NEW: Change StatefulWidget to ScrollablePage ---
+class ChatScreen extends ScrollablePage {
   const ChatScreen({super.key});
 
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+  // --- NEW: The State class now extends ScrollablePageState ---
+  ScrollablePageState<ChatScreen> createState() => _ChatScreenState();
 }
 
 const int maxFailedLoadAttempts = 3;
 
-
-class _ChatScreenState extends State<ChatScreen> {
+// --- NEW: Extend from ScrollablePageState ---
+class _ChatScreenState extends ScrollablePageState<ChatScreen> {
   final FirebaseServices firebaseServices = FirebaseServices();
   var currentUser = FirebaseAuth.instance.currentUser;
   bool _isTyping = false;
   late TextEditingController textEditingController;
+  // This already exists, which is great.
   late ScrollController _listScrollController;
   late FocusNode focusNode;
-
-
 
   @override
   void initState() {
@@ -51,24 +50,31 @@ class _ChatScreenState extends State<ChatScreen> {
     textEditingController.dispose();
     focusNode.dispose();
     _interstitialAd?.dispose();
+    chatScreenTopBanner?.dispose(); // Also dispose the banner ad
     super.dispose();
   }
 
-
+  // --- NEW: Implemented from ScrollablePageState ---
+  @override
+  void scrollToTop() {
+    if (_listScrollController.hasClients) {
+      _listScrollController.animateTo(
+        0.0,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
 
   InterstitialAd? _interstitialAd;
   int _interstitialLoadAttempts = 0;
-
-  // Create interstitial ad.
 
   void _createInterstitialAd() {
     InterstitialAd.load(
       adUnitId: Platform.isAndroid
           ? "ca-app-pub-2404156870680632/2677673537"
-          : Platform.isIOS
-          ? "ca-app-pub-2404156870680632/1359926271"
-          : '',
-      request: AdRequest(),
+          : "ca-app-pub-2404156870680632/1359926271",
+      request: const AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (InterstitialAd ad) {
           _interstitialAd = ad;
@@ -102,84 +108,97 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-
-
   BannerAd? chatScreenTopBanner;
   bool _bannerIsLoaded = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final adState = Provider.of<AdState>(context);
-
-    // Implement a top location banner ad unit.
-    adState.initialization.then((status) {
-      setState(() {
-        chatScreenTopBanner = BannerAd(
-            size: AdSize.banner,
-            adUnitId: adState.chatScreenTopBannerAdUnitId,
-            request: const AdRequest(),
-            listener: BannerAdListener(
-              onAdFailedToLoad: (ad, error) {
-                ad.dispose();
-              },
-            )
-        )
-          ..load();
-        _bannerIsLoaded = true;
+    // Load banner only if it hasn't been loaded yet
+    if (chatScreenTopBanner == null) {
+      final adState = Provider.of<AdState>(context);
+      adState.initialization.then((status) {
+        if (!mounted) return;
+        setState(() {
+          chatScreenTopBanner = BannerAd(
+              size: AdSize.banner,
+              adUnitId: adState.chatScreenTopBannerAdUnitId,
+              request: const AdRequest(),
+              listener: BannerAdListener(
+                onAdLoaded: (ad) {
+                  setState(() {
+                    _bannerIsLoaded = true;
+                  });
+                },
+                onAdFailedToLoad: (ad, error) {
+                  ad.dispose();
+                },
+              ))
+            ..load();
+        });
       });
-    });
+    }
   }
 
-  // List<ChatModel> chatList = [];
   @override
   Widget build(BuildContext context) {
-    final modelsProvider = Provider.of<ModelsProvider>(context);
     final chatProvider = Provider.of<ChatProvider>(context);
+    // Use theme colors
+    final theme = Theme.of(context);
+
     return WillPopScope(
-      onWillPop: (){
-        chatProvider.chatList.clear();
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (context) => BottomNavBar()),
-        );
+      onWillPop: () {
+        // Clear chat history and navigate back to the main screen
+        if (chatProvider.getChatList.isNotEmpty) {
+          chatProvider.chatList.clear();
+        }
+        Navigator.of(context).pop();
         return Future.value(false);
       },
       child: Scaffold(
+        // Use theme for AppBar
         appBar: AppBar(
           elevation: 2,
           automaticallyImplyLeading: true,
-          title: const Text("Ask AI Anything"),
+          title: Text("Ask AI Anything", style: theme.appBarTheme.titleTextStyle),
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: theme.appBarTheme.iconTheme?.color), onPressed: () {
+            if (chatProvider.getChatList.isNotEmpty) {
+              chatProvider.chatList.clear();
+            }
+              Navigator.of(context).pop();
+          },
+          )
         ),
         body: SafeArea(
           child: Column(
             children: [
-              // Top ad unit is here
-              if (chatScreenTopBanner != null && _bannerIsLoaded)
+              if (_bannerIsLoaded && chatScreenTopBanner != null)
                 SizedBox(
-                  height: 60,
+                  height: chatScreenTopBanner!.size.height.toDouble(),
                   child: AdWidget(ad: chatScreenTopBanner!),
                 )
               else
-                SizedBox(height: 70, child: Text('Relevant ads only', style: TextStyle(color: Colors.white),),),
-
+                SizedBox(
+                  height: 50,
+                  child: Center(
+                      child: Text('Relevant ads only',
+                          style: theme.textTheme.bodySmall)),
+                ),
               Flexible(
                 child: ListView.builder(
                     controller: _listScrollController,
-                    itemCount: chatProvider.getChatList.length, //chatList.length,
+                    itemCount: chatProvider.getChatList.length,
                     itemBuilder: (context, index) {
                       return ChatWidget(
-                        msg: chatProvider
-                            .getChatList[index].msg, // chatList[index].msg,
-                        chatIndex: chatProvider.getChatList[index]
-                            .chatIndex, //chatList[index].chatIndex,
+                        msg: chatProvider.getChatList[index].msg,
+                        chatIndex: chatProvider.getChatList[index].chatIndex,
                       );
                     }),
               ),
               if (_isTyping) ...[
-                const SpinKitThreeBounce(
-                  color: Colors.white,
+                SpinKitThreeBounce(
+                  color: theme.colorScheme.secondary, // Use accent color
                   size: 18,
                 ),
               ],
@@ -187,7 +206,8 @@ class _ChatScreenState extends State<ChatScreen> {
                 height: 15,
               ),
               Material(
-                color: cardColor,
+                // Use theme color for the input area background
+                color: theme.colorScheme.surface,
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Row(
@@ -195,53 +215,26 @@ class _ChatScreenState extends State<ChatScreen> {
                       Expanded(
                         child: TextField(
                           focusNode: focusNode,
-                          style: const TextStyle(color: Colors.white),
+                          // Use theme color for text
+                          style: TextStyle(color: theme.colorScheme.onSurface),
                           controller: textEditingController,
                           onSubmitted: (value) async {
-                            await sendMessageFCT(
-                                modelsProvider: modelsProvider,
-                                chatProvider: chatProvider);
-                            final question = textEditingController.text.trim();
-                            final user = await firebaseServices.getUserInfo();
-                            if (question.isNotEmpty) {
-                              await firebaseServices.saveQuestion(user, question);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Question saved'),
-                                ),
-                              );
-                            }
+                            await _handleSendMessage(chatProvider);
                           },
-                          decoration: const InputDecoration.collapsed(
+                          decoration: InputDecoration.collapsed(
                               hintText: "Ask me anything. I mean anything!",
-                              hintStyle: TextStyle(color: Colors.grey)),
+                              // Use theme color for hint text
+                              hintStyle: TextStyle(color: theme.textTheme.bodySmall?.color)),
                         ),
                       ),
                       IconButton(
                           onPressed: () async {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Getting answers. Might see ad later.'),
-                              ),
-                            );
-                            final question = textEditingController.text.trim();
-                            final user = await firebaseServices.getUserInfo();
-                            if (question.isNotEmpty) {
-                              await firebaseServices.saveQuestion(user, question);
-                            }
-                            await sendMessageFCT(
-                                modelsProvider: modelsProvider,
-                                chatProvider: chatProvider);
-                            textEditingController.clear();
-                            _isTyping = false;
-                            _showInterstitialAd();
-                            Future.delayed(Duration(seconds: 4), () {
-                              _showInterstitialAd();
-                            });
+                            await _handleSendMessage(chatProvider);
                           },
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.send,
-                            color: Colors.white,
+                            // Use theme accent color
+                            color: theme.colorScheme.secondary,
                           ))
                     ],
                   ),
@@ -254,6 +247,26 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  Future<void> _handleSendMessage(ChatProvider chatProvider) async {
+    if (textEditingController.text.trim().isEmpty) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Getting answers. Might see an ad later.'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+    final question = textEditingController.text.trim();
+    final user = await firebaseServices.getUserInfo();
+    await firebaseServices.saveQuestion(user, question);
+
+    await sendMessageFCT(chatProvider: chatProvider);
+
+    // Show ad after a delay
+    Future.delayed(const Duration(seconds: 4), _showInterstitialAd);
+  }
+
+
   void scrollListToEND() {
     _listScrollController.animateTo(
         _listScrollController.position.maxScrollExtent,
@@ -261,9 +274,7 @@ class _ChatScreenState extends State<ChatScreen> {
         curve: Curves.easeOut);
   }
 
-  Future<void> sendMessageFCT(
-      {required ModelsProvider modelsProvider,
-      required ChatProvider chatProvider}) async {
+  Future<void> sendMessageFCT({required ChatProvider chatProvider}) async {
     if (_isTyping) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -290,14 +301,11 @@ class _ChatScreenState extends State<ChatScreen> {
       String msg = textEditingController.text;
       setState(() {
         _isTyping = true;
-        // chatList.add(ChatModel(msg: textEditingController.text, chatIndex: 0));
         chatProvider.addUserMessage(msg: msg);
         textEditingController.clear();
         focusNode.unfocus();
       });
-      await chatProvider.sendMessageAndGetAnswers(
-          msg: msg, chosenModelId: modelsProvider.getCurrentModel);
-      setState(() {});
+      await chatProvider.sendMessageAndGetAnswers(msg: msg);
     } catch (error) {
       log("error $error");
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -307,10 +315,12 @@ class _ChatScreenState extends State<ChatScreen> {
         backgroundColor: Colors.red,
       ));
     } finally {
-      setState(() {
-        scrollListToEND();
-        _isTyping = false;
-      });
+      if(mounted) {
+        setState(() {
+          scrollListToEND();
+          _isTyping = false;
+        });
+      }
     }
   }
 }

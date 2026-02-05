@@ -61,6 +61,7 @@ class FirebaseServices extends ChangeNotifier {
         "timeLastUnlocked": timeLastUnlocked,
         "timeRegistered": timeRegistered,
         "userType": userType,
+        "blockedUsers": [], // <-- ADDED: For UGC moderation
       },
       );
       logger.d('Completely created new ego');
@@ -77,7 +78,7 @@ class FirebaseServices extends ChangeNotifier {
       });
 
       //Fluttertoast.showToast(msg: 'Welcome To Ime Afia');
-      Navigator.of(context).pop();
+      // Navigator.of(context).pop(); // Let the caller handle navigation
       return true;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'weak-password') {
@@ -102,16 +103,15 @@ class FirebaseServices extends ChangeNotifier {
   /// Authenticate the user in
   Future<bool> signIn(
       BuildContext context, String email, String password) async {
-    final _user;
     try {
-      _user = await FirebaseAuth.instance
+      await FirebaseAuth.instance
           .signInWithEmailAndPassword(email: email, password: password)
           .then((value) => {
         setUsersId(value.user!.uid),
         //showToast("Showing user UID ${value.user!.uid}")
       });
       //Fluttertoast.showToast(msg: 'You can continue shopping');
-      Navigator.of(context).pop();
+      // Navigator.of(context).pop(); // Let the caller handle navigation
       return true;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'wrong-password') {
@@ -133,7 +133,7 @@ class FirebaseServices extends ChangeNotifier {
   /// then request them to sign in
   Future<bool> isUserSignIn(BuildContext context) async {
     _usersID = await getUsersId();
-    if (_usersID!.isEmpty) {
+    if (_usersID == null || _usersID!.isEmpty) {
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -153,9 +153,9 @@ class FirebaseServices extends ChangeNotifier {
 
 
   /// get users id
-  Future<String> getUsersId() async {
+  Future<String?> getUsersId() async {
     prefs = await SharedPreferences.getInstance();
-    return prefs!.getString(usersKey) ?? '';
+    return prefs!.getString(usersKey);
   }
 
 
@@ -202,7 +202,8 @@ class FirebaseServices extends ChangeNotifier {
         'nickname': nickname,
         'nameOfSchool': nameOfSchool,
         'question': question,
-        'answer': 'Tap open to load answer',
+        'answer': '', // Set answer to empty initially
+        'imageUrl': '', // Set imageUrl to empty initially
         'questionId': questionId,
         'isFeatured': false,
         'thumbsUpCount': 0,
@@ -255,24 +256,64 @@ class FirebaseServices extends ChangeNotifier {
     logger.d('Successfully updated image Url to question');
   }
 
+  // --- START: UGC MODERATION METHODS ---
+
+  /// Reports a question and its owner.
+  Future<bool> reportQuestion(String questionId, String questionOwnerId) async {
+    final reporterId = currentUser?.uid;
+    if (reporterId == null) return false;
+
+    try {
+      await _firebaseFirestore.collection('reports').add({
+        'type': 'question',
+        'questionId': questionId,
+        'reportedUserId': questionOwnerId,
+        'reporterId': reporterId,
+        'timestamp': FieldValue.serverTimestamp(),
+        'status': 'pending', // pending, reviewed
+      });
+      logger.d('Successfully reported question $questionId');
+      return true;
+    } catch (e) {
+      logger.e('Error reporting question: $e');
+      return false;
+    }
+  }
+
+  /// Blocks a user, preventing their content from being seen.
+  Future<bool> blockUser(String userIdToBlock) async {
+    final currentUserId = currentUser?.uid;
+    if (currentUserId == null) return false;
+
+    try {
+      await _firebaseFirestore.collection('users').doc(currentUserId).update({
+        'blockedUsers': FieldValue.arrayUnion([userIdToBlock])
+      });
+      logger.d('Successfully blocked user $userIdToBlock');
+      return true;
+    } catch (e) {
+      logger.e('Error blocking user: $e');
+      return false;
+    }
+  }
+
+  // --- END: UGC MODERATION METHODS ---
+
 
   /// [delete] all users informations
   void deleteUserAccount(BuildContext context, String userId) async {
     await FirebaseAuth.instance.signOut();
-    await prefs!.clear();
+    await prefs?.clear(); // Use null-aware call
     final _userId = userId;
     final collection = FirebaseFirestore.instance
         .collection('users');
     await collection.doc(_userId).delete();
     logger.d('Successfully deleted an account');
-    Navigator.push(
+    // Use pushAndRemoveUntil to clear the navigation stack
+    Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(
-          builder: (context) => LoginPage()),
-    );  }
-
-
+      MaterialPageRoute(builder: (context) => LoginPage()),
+          (Route<dynamic> route) => false,
+    );
+  }
 }
-
-
-

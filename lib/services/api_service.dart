@@ -1,125 +1,34 @@
-import 'dart:convert';
 import 'dart:developer';
-import 'dart:io';
-
-import 'package:AiClopedia/models/chat_model.dart';
-import 'package:AiClopedia/models/models_model.dart';
-import 'package:http/http.dart' as http;
+import 'package:google_generative_ai/google_generative_ai.dart';
+import '../models/chat_model.dart';
 
 class ApiService {
-  static Future<List<ModelsModel>> getModels() async {
-    try {
-      var response = await http.get(
-        Uri.parse("/models"),
-        headers: {'Authorization': 'Bearer '},
-      );
+  // IMPORTANT: Replace with your Gemini API Key
+  static const String _apiKey = 'AIzaSyA_3GFziplvc1EGZqQCohZ1sxqDIwdkALA';
 
-      Map jsonResponse = jsonDecode(response.body);
-
-      if (jsonResponse['error'] != null) {
-        // print("jsonResponse['error'] ${jsonResponse['error']["message"]}");
-        throw HttpException(jsonResponse['error']["message"]);
-      }
-      // print("jsonResponse $jsonResponse");
-      List temp = [];
-      for (var value in jsonResponse["data"]) {
-        temp.add(value);
-        // log("temp ${value["id"]}");
-      }
-      return ModelsModel.modelsFromSnapshot(temp);
-    } catch (error) {
-      log("error $error");
-      rethrow;
-    }
-  }
-
-  static Future<List<ChatModel>> sendMessageGPT(
-      {required String message, required String modelId}) async {
+  static Future<List<ChatModel>> sendMessage({
+    required String message,
+    required String modelId, // This can be 'gemini-pro' for example
+  }) async {
     try {
       log("modelId $modelId");
-      var response = await http.post(
-        Uri.parse("/chat/completions"),
-        headers: {
-          'Authorization': 'Bearer ',
-          "Content-Type": "application/json"
-        },
-        body: jsonEncode(
-          {
-            "model": modelId,
-            "messages": [
-              {
-                "role": "user",
-                "content": message,
-              }
-            ]
-          },
+      final model = GenerativeModel(model: modelId, apiKey: _apiKey);
+      final content = [Content.text(message)];
+      final response = await model.generateContent(content);
+
+      if (response.text == null) {
+        throw Exception("An error occurred: Received null response from API.");
+      }
+      
+      List<ChatModel> chatList = [
+        ChatModel(
+          msg: response.text!,
+          chatIndex: 1,
         ),
-      );
-
-      Map jsonResponse = jsonDecode(response.body);
-
-      if (jsonResponse['error'] != null) {
-        // print("jsonResponse['error'] ${jsonResponse['error']["message"]}");
-        throw HttpException(jsonResponse['error']["message"]);
-      }
-      List<ChatModel> chatList = [];
-      if (jsonResponse["choices"].length > 0) {
-        // log("jsonResponse[choices]text ${jsonResponse["choices"][0]["text"]}");
-        chatList = List.generate(
-          jsonResponse["choices"].length,
-          (index) => ChatModel(
-            msg: jsonResponse["choices"][index]["message"]["content"],
-            chatIndex: 1,
-          ),
-        );
-      }
+      ];
       return chatList;
-    } catch (error) {
-      log("error $error");
-      rethrow;
-    }
-  }
-
-  // Send Message fct
-  static Future<List<ChatModel>> sendMessage(
-      {required String message, required String modelId}) async {
-    try {
-      log("modelId $modelId");
-      var response = await http.post(
-        Uri.parse("/completions"),
-        headers: {
-          'Authorization': 'Bearer ',
-          "Content-Type": "application/json"
-        },
-        body: jsonEncode(
-          {
-            "model": modelId,
-            "prompt": message,
-            "max_tokens": 300,
-          },
-        ),
-      );
-
-      Map jsonResponse = jsonDecode(response.body);
-
-      if (jsonResponse['error'] != null) {
-        // print("jsonResponse['error'] ${jsonResponse['error']["message"]}");
-        throw HttpException(jsonResponse['error']["message"]);
-      }
-      List<ChatModel> chatList = [];
-      if (jsonResponse["choices"].length > 0) {
-        // log("jsonResponse[choices]text ${jsonResponse["choices"][0]["text"]}");
-        chatList = List.generate(
-          jsonResponse["choices"].length,
-          (index) => ChatModel(
-            msg: jsonResponse["choices"][index]["text"],
-            chatIndex: 1,
-          ),
-        );
-      }
-      return chatList;
-    } catch (error) {
-      log("error $error");
+    } catch (e) {
+      log("error $e");
       rethrow;
     }
   }

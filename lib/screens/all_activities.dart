@@ -1,167 +1,270 @@
+import 'dart:ui';
 import 'package:AiClopedia/screens/question_details.dart';
-import 'package:AiClopedia/widgets/bottom_nav.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
+import 'package:timeago/timeago.dart' as timeago;
+
+import '../app_theme.dart';
+import '../constants/scrollable_page.dart';
 import '../models/questionModel.dart';
 import '../services/ad_state.dart';
 import '../services/firebaseServices.dart';
+import '../services/helper.dart'; // For the logger
 
-class AllActivitiesScreen extends StatefulWidget {
-
-  const AllActivitiesScreen({Key? key,}) : super(key: key);
+// --- NEW: Change StatefulWidget to ScrollablePage ---
+class AllActivitiesScreen extends ScrollablePage {
+  const AllActivitiesScreen({Key? key}) : super(key: key);
 
   @override
-  _AllActivitiesScreenState createState() => _AllActivitiesScreenState();
+  // --- NEW: The State class now extends ScrollablePageState ---
+  ScrollablePageState<AllActivitiesScreen> createState() =>
+      _AllActivitiesScreenState();
 }
 
-class _AllActivitiesScreenState extends State<AllActivitiesScreen> {
-  var currentUser = FirebaseAuth.instance.currentUser;
-  bool? isFeatured;
+// --- NEW: Extend from ScrollablePageState ---
+class _AllActivitiesScreenState extends ScrollablePageState<AllActivitiesScreen> {
   BannerAd? activitiesScreenTopBanner;
-  bool _bannerIsLoaded = false;
+
+  // --- NEW: Add ScrollController ---
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    activitiesScreenTopBanner?.dispose();
+    // --- NEW: Dispose ScrollController ---
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  // --- NEW: Implemented from ScrollablePageState ---
+  @override
+  void scrollToTop() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0.0,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  // --- NEW: Function to handle pull-to-refresh ---
+  Future<void> _handleRefresh() async {
+    // The StreamBuilder will automatically re-fetch data.
+    // Adding a delay to make the refresh indicator visible.
+    await Future.delayed(const Duration(seconds: 1));
+    if (mounted) {
+      setState(() {});
+    }
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final adState = Provider.of<AdState>(context);
-
-    // Implement a top location banner ad unit.
-    adState.initialization.then((status) {
-      setState(() {
-        activitiesScreenTopBanner = BannerAd(
-            size: AdSize.banner,
-            adUnitId: adState.activitiesScreenTopBannerAdUnitId,
-            request: const AdRequest(),
-            listener: BannerAdListener(
-              onAdFailedToLoad: (ad, error) {
-                ad.dispose();
-              },
-            )
-        )
-          ..load();
-        _bannerIsLoaded = true;
+    if (activitiesScreenTopBanner == null) {
+      final adState = Provider.of<AdState>(context);
+      adState.initialization.then((status) {
+        if (!mounted) return;
+        setState(() {
+          activitiesScreenTopBanner = BannerAd(
+              size: AdSize.banner,
+              adUnitId: adState.activitiesScreenTopBannerAdUnitId,
+              request: const AdRequest(),
+              listener: BannerAdListener(
+                onAdFailedToLoad: (ad, error) {
+                  ad.dispose();
+                },
+              ))
+            ..load();
+        });
       });
-    });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: (){
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (context) => BottomNavBar()),
-        );
-        return Future.value(false);
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text('All Questions'),
-          automaticallyImplyLeading: true,
-        ),
-        body: Column(
-          children: [
-            // Top ad unit is here
-            if (activitiesScreenTopBanner != null && _bannerIsLoaded)
-              SizedBox(
-                height: 60,
-                child: AdWidget(ad: activitiesScreenTopBanner!),
-              )
-            else
-              SizedBox(height: 70, child: Text('Relevant ads only', style: TextStyle(color: Colors.white),),),
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
 
-            StreamBuilder<List<Question>>(
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('All Questions (Admin)'),
+        // Use theme colors
+        backgroundColor: theme.appBarTheme.backgroundColor,
+        titleTextStyle: theme.appBarTheme.titleTextStyle,
+        iconTheme: theme.appBarTheme.iconTheme,
+        // Use a standard back button that just pops the screen
+        automaticallyImplyLeading: true,
+      ),
+      body: Column(
+        children: [
+          // Top ad unit
+          if (activitiesScreenTopBanner != null)
+            SizedBox(
+              height: activitiesScreenTopBanner!.size.height.toDouble(),
+              child: AdWidget(ad: activitiesScreenTopBanner!),
+            )
+          else
+            SizedBox(
+              height: 50,
+              child: Center(
+                  child: Text('Relevant ads only',
+                      style: theme.textTheme.bodySmall)),
+            ),
+          Expanded(
+            child: StreamBuilder<List<Question>>(
               stream: getAllQuestions(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(
-                    child: CircularProgressIndicator(),
-                  );
+                  return const Center(child: CircularProgressIndicator());
                 }
 
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Center(
-                    child: Text('No questions yet'),
-                  );
+                  return const Center(child: Text('No questions yet.'));
                 }
-
-                return Flexible(
+                final questions = snapshot.data!;
+                // --- NEW: Wrap with RefreshIndicator ---
+                return RefreshIndicator(
+                  onRefresh: _handleRefresh,
+                  backgroundColor:
+                  isDarkMode ? AppTheme.darkBackground : Colors.white,
+                  color: AppTheme.primaryGreen,
                   child: ListView.builder(
-                    itemCount: snapshot.data!.length,
+                    // --- NEW: Assign ScrollController ---
+                    controller: _scrollController,
+                    itemCount: questions.length,
+                    padding: const EdgeInsets.only(top: 8, bottom: 32),
                     itemBuilder: (context, index) {
-                      final question = snapshot.data![index];
-                      return GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => QuestionDetails(question: question),
-                            ),
-                          );
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8.0),
-                            color: Colors.grey[200],
-                          ),
-                          margin: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                          padding: EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                question.question,
-                                style: TextStyle(
-                                  fontSize: 18.0,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              SizedBox(height: 8.0),
-                              Text(
-                                'Asked by: ${question.nickname}',
-                                style: TextStyle(
-                                  fontSize: 16.0,
-                                ),
-                              ),
-                              SizedBox(height: 4.0),
-                              Text(
-                                'School: ${question.nameOfSchool}',
-                                style: TextStyle(
-                                  fontSize: 16.0,
-                                ),
-                              ),
-
-                              GestureDetector(
-                                onTap: () {
-                                  if (question.isFeatured == false)
-                                    setState(() {
-                                      setToFeatured(question);
-                                    });
-                                  else removeFromFeatured(question);
-                                  setState(() {});
-                                },
-                                child: Container(
-                                  child: Icon(
-                                    question.isFeatured == true ? Icons.lightbulb : Icons.lightbulb_outline,
-                                    color: Colors.green,
-                                    size: 26,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
+                      final question = questions[index];
+                      // --- NEW: Use the redesigned admin question card ---
+                      return _buildAdminQuestionCard(context, question);
                     },
                   ),
                 );
               },
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- NEW: A dedicated widget for the admin question card view ---
+  Widget _buildAdminQuestionCard(BuildContext context, Question question) {
+    final theme = Theme.of(context);
+    final secondaryTextColor = theme.colorScheme.onSurface.withOpacity(0.7);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            decoration: BoxDecoration(
+              color: AppTheme.glassmorphismColor(context),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withOpacity(0.2)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // --- Question Text ---
+                Text(
+                  question.question,
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w600, fontSize: 16),
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 12),
+                // --- User Info ---
+                Row(
+                  children: [
+                    Icon(Icons.person_outline,
+                        color: secondaryTextColor, size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '${question.nickname} • ${question.nameOfSchool}',
+                        style: theme.textTheme.bodySmall
+                            ?.copyWith(color: secondaryTextColor),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                // --- Timestamp ---
+                Row(
+                  children: [
+                    Icon(Icons.access_time,
+                        color: secondaryTextColor, size: 16),
+                    const SizedBox(width: 8),
+                    Text(
+                      timeago.format(question.timestamp),
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: secondaryTextColor),
+                    ),
+                  ],
+                ),
+                const Divider(height: 24),
+                // --- Admin Actions ---
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // --- View Details Button ---
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                QuestionDetails(question: question),
+                          ),
+                        );
+                      },
+                      child: const Text('View Details'),
+                    ),
+
+                    // --- Feature Toggle ---
+                    InkWell(
+                      onTap: () => toggleFeaturedStatus(question, !question.isFeatured),
+                      borderRadius: BorderRadius.circular(20),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        child: Row(
+                          children: [
+                            Text(
+                              'Feature',
+                              style: TextStyle(
+                                  color: question.isFeatured
+                                      ? AppTheme.primaryGreen
+                                      : secondaryTextColor,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(width: 8),
+                            Icon(
+                              question.isFeatured
+                                  ? Icons.toggle_on
+                                  : Icons.toggle_off_outlined,
+                              color: question.isFeatured
+                                  ? AppTheme.primaryGreen
+                                  : secondaryTextColor,
+                              size: 30,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -171,49 +274,31 @@ class _AllActivitiesScreenState extends State<AllActivitiesScreen> {
     return FirebaseFirestore.instance
         .collection('questions')
         .orderBy('timestamp', descending: true)
-        .limit(100)
+        .limit(100) // Limiting the load for performance
         .snapshots()
         .map((querySnapshot) => querySnapshot.docs
         .map((doc) => Question.fromJson(doc.data()))
         .toList());
   }
 
-
-  /// Edit feature
-
-  Future<bool?> setToFeatured(Question question) async {
-    final String questionId = question.questionId;
-    final value = true;
-    FirebaseFirestore.instance
-        .collection('questions')
-        .doc(questionId)
-        .update({
-      "isFeatured": value,
-    },
-    );
-    logger.d('Successfully changed feature');
-    print('Is Featured?: $value');
-    isFeatured = value;
-    return value;
+  // --- REFACTORED: Combined feature logic into one method ---
+  Future<void> toggleFeaturedStatus(Question question, bool newStatus) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('questions')
+          .doc(question.questionId)
+          .update({
+        "isFeatured": newStatus,
+      });
+      logger.d('Successfully changed feature to $newStatus for question ${question.questionId}');
+      // The UI will update automatically via the StreamBuilder
+    } catch (e) {
+      logger.e('Failed to update feature status: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to update status. Please try again.')),
+        );
+      }
+    }
   }
-
-
-  Future<bool?> removeFromFeatured(Question question) async {
-    final String questionId = question.questionId;
-    final value = false;
-    FirebaseFirestore.instance
-        .collection('questions')
-        .doc(questionId)
-        .update({
-      "isFeatured": value,
-    },
-    );
-    logger.d('Successfully changed feature');
-    print('Is Featured?: $value');
-    isFeatured = value;
-    return value;
-  }
-
-
-
 }
