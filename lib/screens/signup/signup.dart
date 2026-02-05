@@ -31,18 +31,14 @@ class _SignupPageState extends State<SignupPage> {
   bool _termsAccepted = false; // <-- ADDED: State for checkbox
   final FirebaseServices _firebaseServices = FirebaseServices();
 
-  InterstitialAd? _interstitialAd;
-  int _interstitialLoadAttempts = 0;
 
   @override
   void initState() {
-    _createInterstitialAd();
     super.initState();
   }
 
   @override
   void dispose() {
-    _interstitialAd?.dispose();
     _emailController.dispose();
     _nicknameController.dispose();
     _nameOfSchoolController.dispose();
@@ -50,47 +46,6 @@ class _SignupPageState extends State<SignupPage> {
     super.dispose();
   }
 
-  // --- AD METHODS ---
-  void _createInterstitialAd() {
-    InterstitialAd.load(
-      adUnitId: Platform.isAndroid
-          ? "ca-app-pub-2404156870680632/8353560090"
-          : Platform.isIOS
-          ? "ca-app-pub-2404156870680632/1551497962"
-          : '',
-      request: AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: (InterstitialAd ad) {
-          _interstitialAd = ad;
-          _interstitialLoadAttempts = 0;
-        },
-        onAdFailedToLoad: (LoadAdError error) {
-          print('Failed to load an interstitial ad: ${error.message}');
-          _interstitialLoadAttempts += 1;
-          _interstitialAd = null;
-          if (_interstitialLoadAttempts <= maxFailedLoadAttempts) {
-            _createInterstitialAd();
-          }
-        },
-      ),
-    );
-  }
-
-  void _showInterstitialAd() {
-    if (_interstitialAd != null) {
-      _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
-        onAdDismissedFullScreenContent: (InterstitialAd ad) {
-          ad.dispose();
-          _createInterstitialAd();
-        },
-        onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError error) {
-          ad.dispose();
-          _createInterstitialAd();
-        },
-      );
-      _interstitialAd!.show();
-    }
-  }
 
   BannerAd? signupBottomBanner;
   bool _bannerIsLoaded = false;
@@ -271,7 +226,6 @@ class _SignupPageState extends State<SignupPage> {
         MaterialPageRoute(builder: (context) => BottomNavBar()),
             (Route<dynamic> route) => false,
       );
-      Future.delayed(Duration(seconds: 4), _showInterstitialAd);
     } else {
       // The error message is shown by firebaseServices, but you could add a generic one here
       ScaffoldMessenger.of(context).showSnackBar(

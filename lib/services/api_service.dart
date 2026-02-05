@@ -4,22 +4,24 @@ import '../models/chat_model.dart';
 
 class ApiService {
   // IMPORTANT: Replace with your Gemini API Key
-  static const String _apiKey = 'AIzaSyA_3GFziplvc1EGZqQCohZ1sxqDIwdkALA';
+  static const String _apiKey = 'AIzaSyBYkSsyIuzT9fDpdKQSt8-V4gCDHnW-Yqw';
 
   static Future<List<ChatModel>> sendMessage({
     required String message,
-    required String modelId, // This can be 'gemini-pro' for example
+    // The modelId parameter is removed to prevent conflicts.
+    // We will use the correct model name directly.
   }) async {
     try {
-      log("modelId $modelId");
-      final model = GenerativeModel(model: modelId, apiKey: _apiKey);
+      // --- MODIFIED: Hardcode the correct model name for text-only generation ---
+      final model = GenerativeModel(model: 'gemini-pro', apiKey: _apiKey);
+
       final content = [Content.text(message)];
       final response = await model.generateContent(content);
 
       if (response.text == null) {
         throw Exception("An error occurred: Received null response from API.");
       }
-      
+
       List<ChatModel> chatList = [
         ChatModel(
           msg: response.text!,
@@ -29,7 +31,8 @@ class ApiService {
       return chatList;
     } catch (e) {
       log("error $e");
-      rethrow;
+      // Providing a more user-friendly error message
+      throw Exception('Failed to get a response from the AI. Please check your API key and network connection.');
     }
   }
 }

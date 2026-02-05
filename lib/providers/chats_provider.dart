@@ -16,9 +16,9 @@ class ChatProvider with ChangeNotifier {
 
   Future<void> sendMessageAndGetAnswers(
       {required String msg}) async {
+    // --- MODIFIED: Removed the 'modelId' parameter ---
     chatList.addAll(await ApiService.sendMessage(
       message: msg,
-      modelId: 'gemini-pro',
     ));
     notifyListeners();
   }

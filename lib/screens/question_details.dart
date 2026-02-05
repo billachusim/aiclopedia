@@ -77,8 +77,8 @@ class _QuestionDetailsState extends State<QuestionDetails> {
   void _createInterstitialAd() {
     InterstitialAd.load(
       adUnitId: Platform.isAndroid
-          ? "ca-app-pub-2404156870680632/4294045529"
-          : "ca-app-pub-2404156870680632/4034191073",
+          ? "ca-app-pub-2404156870680632/6736890895"
+          : "ca-app-pub-2404156870680632/6899816077",
       request: const AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (InterstitialAd ad) {

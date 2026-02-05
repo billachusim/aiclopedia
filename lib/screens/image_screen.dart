@@ -74,8 +74,8 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
   void _createInterstitialAd() {
     InterstitialAd.load(
       adUnitId: Platform.isAndroid
-          ? "ca-app-pub-2404156870680632/9546372208"
-          : "ca-app-pub-2404156870680632/5347272743",
+          ? "ca-app-pub-2404156870680632/4330219400"
+          : "ca-app-pub-2404156870680632/5986179917",
       request: const AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (InterstitialAd ad) {

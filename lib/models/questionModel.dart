@@ -28,17 +28,26 @@ class Question {
   });
 
   factory Question.fromJson(Map<String, dynamic> json) {
+    // --- MODIFIED: Safely handle the timestamp ---
+    DateTime parsedTimestamp;
+    if (json['timestamp'] is Timestamp) {
+      parsedTimestamp = (json['timestamp'] as Timestamp).toDate();
+    } else {
+      // If the timestamp is null or not a Timestamp, use the current time as a fallback.
+      parsedTimestamp = DateTime.now();
+    }
+
     return Question(
-      userId: json['userId'],
+      userId: json['userId'] ?? '', // Added null check for safety
       nickname: json['nickname'] ?? '',
       nameOfSchool: json['nameOfSchool'] ?? '',
-      question: json['question'],
+      question: json['question'] ?? '', // Added null check for safety
       answer: json['answer'] ?? '',
       imageUrl: json['imageUrl'] ?? '',
       thumbsUpCount: json['thumbsUpCount'] ?? 0,
       thumbsDownCount: json['thumbsDownCount'] ?? 0,
       questionId: json['questionId'] ?? '',
-      timestamp: (json['timestamp'] as Timestamp).toDate(),
+      timestamp: parsedTimestamp, // Use the safely parsed timestamp
       isFeatured: json['isFeatured'] ?? false,
     );
   }

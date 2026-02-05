@@ -129,8 +129,8 @@ class _HomepageState extends ScrollablePageState<Homepage> {
   void _createInterstitialAd() {
     RewardedInterstitialAd.load(
       adUnitId: Platform.isAndroid
-          ? "ca-app-pub-2404156870680632/8755996723"
-          : "ca-app-pub-2404156870680632/6851888112",
+          ? "ca-app-pub-2404156870680632/7858400876"
+          : "ca-app-pub-2404156870680632/8883805999",
       request: const AdRequest(),
       rewardedInterstitialAdLoadCallback: RewardedInterstitialAdLoadCallback(
         onAdLoaded: (RewardedInterstitialAd ad) {

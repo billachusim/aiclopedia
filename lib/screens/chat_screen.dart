@@ -72,8 +72,8 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
   void _createInterstitialAd() {
     InterstitialAd.load(
       adUnitId: Platform.isAndroid
-          ? "ca-app-pub-2404156870680632/2677673537"
-          : "ca-app-pub-2404156870680632/1359926271",
+          ? "ca-app-pub-2404156870680632/5039939496"
+          : "ca-app-pub-2404156870680632/4465224423",
       request: const AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (InterstitialAd ad) {

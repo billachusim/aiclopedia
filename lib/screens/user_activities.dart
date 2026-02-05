@@ -67,8 +67,8 @@ class _ActivitiesScreenState extends ScrollablePageState<ActivitiesScreen> {
   void _createInterstitialAd() {
     InterstitialAd.load(
       adUnitId: Platform.isAndroid
-          ? "ca-app-pub-2404156870680632/6302111828"
-          : "ca-app-pub-2404156870680632/5886290801",
+          ? "ca-app-pub-2404156870680632/2913195951"
+          : "ca-app-pub-2404156870680632/3304176259",
       request: const AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (InterstitialAd ad) {

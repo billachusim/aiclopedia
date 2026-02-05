@@ -12,9 +12,9 @@ class AdState {
   // Create home top banner ad unit.
   String get homeTopBannerAdUnitId {
     if (Platform.isAndroid) {
-      return "ca-app-pub-2404156870680632/4534180720";
+      return "ca-app-pub-2404156870680632/4589337767";
     } else if (Platform.isIOS) {
-      return "ca-app-pub-2404156870680632/9244695314";
+      return "ca-app-pub-2404156870680632/4685442628";
     } else {
       throw UnsupportedError("Unsupported platform");
     }
@@ -23,9 +23,9 @@ class AdState {
   // Create home bottom banner ad unit.
   String get homeBottomBannerAdUnitId {
     if (Platform.isAndroid) {
-      return "ca-app-pub-2404156870680632/4284551673";
+      return "ca-app-pub-2404156870680632/8844179480";
     } else if (Platform.isIOS) {
-      return "ca-app-pub-2404156870680632/6497196758";
+      return "ca-app-pub-2404156870680632/9718277454";
     } else {
       throw UnsupportedError("Unsupported platform");
     }
@@ -34,9 +34,9 @@ class AdState {
   // Create Ego Mode top of comments banner ad unit.
   String get imageScreenTopBannerAdUnitId {
     if (Platform.isAndroid) {
-      return "ca-app-pub-2404156870680632/7595458335";
+      return "ca-app-pub-2404156870680632/7862270308";
     } else if (Platform.isIOS) {
-      return "ca-app-pub-2404156870680632/7931613647";
+      return "ca-app-pub-2404156870680632/7338799773";
     } else {
       throw UnsupportedError("Unsupported platform");
     }
@@ -47,9 +47,9 @@ class AdState {
   // Create Ego Mode top of comments banner ad unit.
   String get chatScreenTopBannerAdUnitId {
     if (Platform.isAndroid) {
-      return "ca-app-pub-2404156870680632/5080975632";
+      return "ca-app-pub-2404156870680632/9650092750";
     } else if (Platform.isIOS) {
-      return "ca-app-pub-2404156870680632/1194852899";
+      return "ca-app-pub-2404156870680632/2709289620";
     } else {
       throw UnsupportedError("Unsupported platform");
     }
@@ -58,9 +58,9 @@ class AdState {
   // Create Ego Mode top of comments banner ad unit.
   String get activitiesScreenTopBannerAdUnitId {
     if (Platform.isAndroid) {
-      return "ca-app-pub-2404156870680632/7323995596";
+      return "ca-app-pub-2404156870680632/6114074363";
     } else if (Platform.isIOS) {
-      return "ca-app-pub-2404156870680632/3871033417";
+      return "ca-app-pub-2404156870680632/6257642658";
     } else {
       throw UnsupportedError("Unsupported platform");
     }
@@ -70,9 +70,9 @@ class AdState {
   // Create Ego Mode top of comments banner ad unit.
   String get loginBottomBannerAdUnitId {
     if (Platform.isAndroid) {
-      return "ca-app-pub-2404156870680632/6980380669";
+      return "ca-app-pub-2404156870680632/8652607790";
     } else if (Platform.isIOS) {
-      return "ca-app-pub-2404156870680632/7618706736";
+      return "ca-app-pub-2404156870680632/4022371296";
     } else {
       throw UnsupportedError("Unsupported platform");
     }
@@ -82,9 +82,9 @@ class AdState {
   // Create Signup Screen Bottom banner ad unit.
   String get signupBottomBannerAdUnitId {
     if (Platform.isAndroid) {
-      return "ca-app-pub-2404156870680632/7033185708";
+      return "ca-app-pub-2404156870680632/8277203271";
     } else if (Platform.isIOS) {
-      return "ca-app-pub-2404156870680632/7235563358";
+      return "ca-app-pub-2404156870680632/1416379512";
     } else {
       throw UnsupportedError("Unsupported platform");
     }
@@ -93,9 +93,9 @@ class AdState {
 
   String get questionDetailsTopBanner {
     if (Platform.isAndroid) {
-      return "ca-app-pub-2404156870680632/6010314853";
+      return "ca-app-pub-2404156870680632/2174829356";
     } else if (Platform.isIOS) {
-      return "ca-app-pub-2404156870680632/9751670195";
+      return "ca-app-pub-2404156870680632/2222930812";
     } else {
       throw UnsupportedError("Unsupported platform");
     }
@@ -104,9 +104,9 @@ class AdState {
   // Create Mood Sessions top banner ad unit.
   String get questionDetailsBottomBanner {
     if (Platform.isAndroid) {
-      return "ca-app-pub-2404156870680632/6195568566";
+      return "ca-app-pub-2404156870680632/6927736238";
     } else if (Platform.isIOS) {
-      return "ca-app-pub-2404156870680632/3186261846";
+      return "ca-app-pub-2404156870680632/6668706194";
     } else {
       throw UnsupportedError("Unsupported platform");
     }
