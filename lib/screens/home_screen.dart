@@ -300,12 +300,12 @@ class _HomepageState extends ScrollablePageState<Homepage> {
         decoration: BoxDecoration(
           image: DecorationImage(
             image: AssetImage(
-              isDarkMode ? "assets/images/ClaireDark.png" : "assets/images/ClaireLight.png",
+              isDarkMode ? "assets/images/iconWhitePetal.png" : "assets/images/iconWhitePetal.png",
             ),
-            fit: BoxFit.cover,
+            fit: BoxFit.fitHeight,
             colorFilter: isDarkMode
-                ? null
-                : ColorFilter.mode(Colors.white.withAlpha(77), BlendMode.dstATop),
+                ? ColorFilter.mode(Colors.white.withAlpha(30), BlendMode.dstATop)
+                : ColorFilter.mode(Colors.white.withAlpha(30), BlendMode.dstATop),
           ),
         ),
         child: RefreshIndicator(
