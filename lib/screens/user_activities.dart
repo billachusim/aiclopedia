@@ -44,11 +44,12 @@ class _ActivitiesScreenState extends ScrollablePageState<ActivitiesScreen> {
 
   @override
   void dispose() {
-    _interstitialAd?.dispose();
+    Future.delayed(const Duration(seconds: 2), _showInterstitialAd);
     activitiesScreenTopBanner?.dispose();
     // --- NEW: Dispose ScrollController ---
     _scrollController.dispose();
     super.dispose();
+    _interstitialAd?.dispose();
   }
 
   // --- NEW: Implemented from ScrollablePageState ---
@@ -239,7 +240,6 @@ class _ActivitiesScreenState extends ScrollablePageState<ActivitiesScreen> {
           context,
           MaterialPageRoute(builder: (context) => QuestionDetails(question: question)),
         );
-        Future.delayed(const Duration(seconds: 4), _showInterstitialAd);
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),

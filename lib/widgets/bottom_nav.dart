@@ -119,8 +119,7 @@ class _BottomNavbarState extends State<BottomNavBar> {
           setTabIndex(0);
           return false; // Prevent app from closing
         }
-        // If on the home tab, allow the default system pop (exit app).
-        SystemNavigator.pop();
+        // If on the home tab, let the system handle the back button.
         return true;
       },
       child: Scaffold(
@@ -152,7 +151,7 @@ class _BottomNavbarState extends State<BottomNavBar> {
             fontSize: 10,
           ),
           selectedItemColor: Colors.white,
-          unselectedItemColor: Colors.white.withOpacity(0.6),
+          unselectedItemColor: Colors.white.withAlpha((255 * 0.6).round()),
         ),
       ),
     );

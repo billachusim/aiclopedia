@@ -67,10 +67,11 @@ class _QuestionDetailsState extends State<QuestionDetails> {
 
   @override
   void dispose() {
-    _interstitialAd?.dispose();
+    Future.delayed(const Duration(seconds: 2), _showInterstitialAd);
     questionDetailsTopBanner?.dispose();
     questionDetailsBottomBanner?.dispose();
     super.dispose();
+    _interstitialAd?.dispose();
   }
 
   // --- AD METHODS ---
@@ -230,7 +231,6 @@ class _QuestionDetailsState extends State<QuestionDetails> {
       log("Error in handleImageGeneration: $e");
     } finally {
       if (mounted) setState(() => _isLoadingImage = false);
-      Future.delayed(const Duration(seconds: 4), _showInterstitialAd);
     }
   }
 
@@ -374,7 +374,7 @@ class _QuestionDetailsState extends State<QuestionDetails> {
           decoration: BoxDecoration(
             color: AppTheme.glassmorphismColor(context),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withOpacity(0.2)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
           ),
           child: child,
         ),
@@ -428,7 +428,7 @@ class _QuestionDetailsState extends State<QuestionDetails> {
   }
 
   Widget _buildMetadataRow(ThemeData theme, {required IconData icon, required String label, required String value, Color? valueColor}) {
-    final secondaryTextColor = theme.colorScheme.onSurface.withOpacity(0.7);
+    final secondaryTextColor = theme.colorScheme.onSurface.withValues(alpha: 0.7);
     return Row(
       children: [
         Icon(icon, color: secondaryTextColor, size: 18),

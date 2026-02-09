@@ -300,6 +300,19 @@ class FirebaseServices extends ChangeNotifier {
   // --- END: UGC MODERATION METHODS ---
 
 
+  /// [signOut] user
+  void signOut(BuildContext context) async {
+    await FirebaseAuth.instance.signOut();
+    await prefs?.clear(); // Use null-aware call
+    logger.d('Successfully signed out');
+    // Use pushAndRemoveUntil to clear the navigation stack
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => LoginPage()),
+          (Route<dynamic> route) => false,
+    );
+  }
+
   /// [delete] all users informations
   void deleteUserAccount(BuildContext context, String userId) async {
     await FirebaseAuth.instance.signOut();

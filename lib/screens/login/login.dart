@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart'; // <-- ADDED: For launching URLs
-import '../../services/ad_state.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../services/button.dart';
 import '../../services/firebaseServices.dart';
 import '../../widgets/bottom_nav.dart';
@@ -21,8 +18,7 @@ class _LoginPageState extends State<LoginPage> {
   bool _isSigningIn = false; // <-- RENAMED for clarity
   final FirebaseServices _firebaseServices = FirebaseServices();
 
-  BannerAd? loginBottomBanner;
-  bool _bannerIsLoaded = false;
+
 
   @override
   void initState() {
@@ -33,38 +29,10 @@ class _LoginPageState extends State<LoginPage> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
-    loginBottomBanner?.dispose(); // <-- ADDED: Dispose banner ad
     super.dispose();
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Load banner only once
-    if (loginBottomBanner == null) {
-      final adState = Provider.of<AdState>(context, listen: false);
-      adState.initialization.then((status) {
-        if (!mounted) return;
-        setState(() {
-          loginBottomBanner = BannerAd(
-              size: AdSize.banner,
-              adUnitId: adState.loginBottomBannerAdUnitId,
-              request: const AdRequest(),
-              listener: BannerAdListener(
-                onAdLoaded: (ad) {
-                  if (mounted) {
-                    setState(() => _bannerIsLoaded = true);
-                  }
-                },
-                onAdFailedToLoad: (ad, error) {
-                  ad.dispose();
-                },
-              ))
-            ..load();
-        });
-      });
-    }
-  }
+
 
   // --- ADDED: Method to launch URL ---
   void _launchPolicySite() async {
@@ -196,13 +164,6 @@ class _LoginPageState extends State<LoginPage> {
                 _buildTermsAndPolicyText(),
                 SizedBox(height: 20.0), // <-- ADJUSTED: Spacing
 
-                if (_bannerIsLoaded && loginBottomBanner != null)
-                  SizedBox(
-                    height: loginBottomBanner!.size.height.toDouble(),
-                    child: AdWidget(ad: loginBottomBanner!),
-                  )
-                else
-                  SizedBox(height: 50),
               ],
             ),
           ),
@@ -218,7 +179,7 @@ class _LoginPageState extends State<LoginPage> {
         Text(
           "By signing in, you are accepting Ai Clopedia's Terms Of Use and Privacy Policy",
           textAlign: TextAlign.center,
-          style: GoogleFonts.lato(fontSize: 12.0, color: Colors.white.withOpacity(0.7)),
+          style: GoogleFonts.lato(fontSize: 12.0, color: Colors.white.withValues(alpha: 0.7)),
         ),
         SizedBox(height: 8),
         GestureDetector(

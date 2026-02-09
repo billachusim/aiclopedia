@@ -136,7 +136,7 @@ class _QuestionWidgetState extends State<QuestionWidget> {
               color: AppTheme.glassmorphismColor(context),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 width: 1.0,
               ),
             ),
@@ -159,13 +159,13 @@ class _QuestionWidgetState extends State<QuestionWidget> {
 
   Widget _buildHeader(BuildContext context) {
     final textColor = Theme.of(context).colorScheme.onSurface;
-    final secondaryTextColor = textColor.withOpacity(0.7);
+    final secondaryTextColor = textColor.withValues(alpha: 0.7);
 
     return Row(
       children: [
         CircleAvatar(
           radius: 20,
-          backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+          backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
           child: Icon(Icons.person_outline, color: textColor),
         ),
         const SizedBox(width: 12),
@@ -192,7 +192,7 @@ class _QuestionWidgetState extends State<QuestionWidget> {
         // --- ADDED: MODERATION POPUP BUTTON (HIDDEN FROM OWNER) ---
         if (widget.question.userId != currentUser?.uid)
           PopupMenuButton<String>(
-            icon: Icon(Icons.more_horiz, color: textColor.withOpacity(0.5)),
+            icon: Icon(Icons.more_horiz, color: textColor.withValues(alpha: 0.5)),
             onSelected: (String value) {
               final questionId = widget.question.questionId;
               final ownerId = widget.question.userId;
@@ -276,7 +276,7 @@ class _QuestionWidgetState extends State<QuestionWidget> {
           Text(
             count.toString(),
             style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
               fontWeight: FontWeight.bold,
               fontSize: 14,
             ),

@@ -80,12 +80,13 @@ class _HomepageState extends ScrollablePageState<Homepage> {
 
   @override
   void dispose() {
-    _interstitialAd?.dispose();
+    Future.delayed(const Duration(seconds: 2), _showInterstitialAd);
     homeTopBanner?.dispose();
     homeBottomBanner?.dispose();
     _scrollController.dispose();
-    _refreshSubscription?.cancel(); // --- ADDED: Cancel subscription
+    _refreshSubscription?.cancel();
     super.dispose();
+    _interstitialAd?.dispose();
   }
 
   void getUser() async {
@@ -221,6 +222,7 @@ class _HomepageState extends ScrollablePageState<Homepage> {
     // 3. Build the Firestore query.
     Query query = FirebaseFirestore.instance
         .collection('questions')
+        .where('isFeatured', isEqualTo: true)
         .orderBy('timestamp', descending: true)
         .limit(50);
 
@@ -251,7 +253,6 @@ class _HomepageState extends ScrollablePageState<Homepage> {
     } else {
       Navigator.push(context, MaterialPageRoute(builder: (context) => const ChatScreen()));
     }
-    Future.delayed(const Duration(seconds: 4), _showInterstitialAd);
   }
 
   void _onQuestionTapped(Question question) {
@@ -262,7 +263,6 @@ class _HomepageState extends ScrollablePageState<Homepage> {
       context,
       MaterialPageRoute(builder: (context) => QuestionDetails(question: question)),
     );
-    Future.delayed(const Duration(seconds: 4), _showInterstitialAd);
   }
 
   @override
@@ -276,11 +276,13 @@ class _HomepageState extends ScrollablePageState<Homepage> {
         title: const Text("AiClopedia"),
         leading: GestureDetector(
           onDoubleTap: () async {
+            final navigator = Navigator.of(context);
             final user = await firebaseServices.getUserInfo();
             if (user.userType == 'ADMIN' && mounted) {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => AllActivitiesScreen()));
+              navigator.push(MaterialPageRoute(builder: (context) => AllActivitiesScreen()));
             }
           },
+
           child: Padding(
             padding: const EdgeInsets.all(8.0),
             child: Image.asset("assets/images/aiclop.png"),

@@ -47,12 +47,13 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
 
   @override
   void dispose() {
+    Future.delayed(const Duration(seconds: 2), _showInterstitialAd);
     _scrollController.dispose();
     textEditingController.dispose();
     focusNode.dispose();
-    _interstitialAd?.dispose();
     imageScreenTopBanner?.dispose();
     super.dispose();
+    _interstitialAd?.dispose();
   }
 
   // --- NEW: Implemented from ScrollablePageState ---
@@ -319,7 +320,6 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
       });
     }
 
-    Future.delayed(const Duration(seconds: 4), _showInterstitialAd);
   }
 
   Future<void> generateImage(String userInput) async {

@@ -13,6 +13,10 @@ class _SettingsPageState extends State<SettingsPage> {
   final FirebaseServices _firebaseServices = FirebaseServices();
   final User? currentUser = FirebaseAuth.instance.currentUser;
 
+  void _signOut() {
+    _firebaseServices.signOut(context);
+  }
+
   void _confirmAndDeleteAccount() {
     // Ensure there is a current user
     if (currentUser == null) {
@@ -60,6 +64,12 @@ class _SettingsPageState extends State<SettingsPage> {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
+          ListTile(
+            leading: const Icon(Icons.logout),
+            title: const Text('Logout'),
+            onTap: _signOut,
+          ),
+          const Divider(),
           ListTile(
             leading: const Icon(Icons.delete_forever, color: Colors.red),
             title: const Text('Delete Account', style: TextStyle(color: Colors.red)),

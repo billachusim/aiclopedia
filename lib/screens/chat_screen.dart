@@ -46,12 +46,13 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
 
   @override
   void dispose() {
+    Future.delayed(const Duration(seconds: 2), _showInterstitialAd);
     _listScrollController.dispose();
     textEditingController.dispose();
     focusNode.dispose();
     _interstitialAd?.dispose();
-    chatScreenTopBanner?.dispose(); // Also dispose the banner ad
     super.dispose();
+    chatScreenTopBanner?.dispose(); // Also dispose the banner ad
   }
 
   // --- NEW: Implemented from ScrollablePageState ---
@@ -148,12 +149,12 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
 
     return WillPopScope(
       onWillPop: () {
-        // Clear chat history and navigate back to the main screen
+        // Clear chat history
         if (chatProvider.getChatList.isNotEmpty) {
           chatProvider.chatList.clear();
         }
-        Navigator.of(context).pop();
-        return Future.value(false);
+        // Allow pop to be handled by parent WillPopScope
+        return Future.value(true);
       },
       child: Scaffold(
         // Use theme for AppBar
@@ -163,10 +164,7 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
           title: Text("Ask AI Anything", style: theme.appBarTheme.titleTextStyle),
           leading: IconButton(
             icon: Icon(Icons.arrow_back, color: theme.appBarTheme.iconTheme?.color), onPressed: () {
-            if (chatProvider.getChatList.isNotEmpty) {
-              chatProvider.chatList.clear();
-            }
-              Navigator.of(context).pop();
+            Navigator.maybePop(context);
           },
           )
         ),
@@ -262,8 +260,6 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
 
     await sendMessageFCT(chatProvider: chatProvider);
 
-    // Show ad after a delay
-    Future.delayed(const Duration(seconds: 4), _showInterstitialAd);
   }
 
 

@@ -11,7 +11,6 @@ import '../constants/scrollable_page.dart';
 import '../models/questionModel.dart';
 import '../services/ad_state.dart';
 import '../services/firebaseServices.dart';
-import '../services/helper.dart'; // For the logger
 
 // --- NEW: Change StatefulWidget to ScrollablePage ---
 class AllActivitiesScreen extends ScrollablePage {
@@ -154,7 +153,7 @@ class _AllActivitiesScreenState extends ScrollablePageState<AllActivitiesScreen>
   // --- NEW: A dedicated widget for the admin question card view ---
   Widget _buildAdminQuestionCard(BuildContext context, Question question) {
     final theme = Theme.of(context);
-    final secondaryTextColor = theme.colorScheme.onSurface.withOpacity(0.7);
+    final secondaryTextColor = theme.colorScheme.onSurface.withValues(alpha: 0.7);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
@@ -167,7 +166,7 @@ class _AllActivitiesScreenState extends ScrollablePageState<AllActivitiesScreen>
             decoration: BoxDecoration(
               color: AppTheme.glassmorphismColor(context),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withOpacity(0.2)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -273,8 +272,8 @@ class _AllActivitiesScreenState extends ScrollablePageState<AllActivitiesScreen>
   Stream<List<Question>> getAllQuestions() {
     return FirebaseFirestore.instance
         .collection('questions')
+        .limit(100)
         .orderBy('timestamp', descending: true)
-        .limit(100) // Limiting the load for performance
         .snapshots()
         .map((querySnapshot) => querySnapshot.docs
         .map((doc) => Question.fromJson(doc.data()))
