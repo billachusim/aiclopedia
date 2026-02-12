@@ -1,7 +1,6 @@
 import 'dart:io';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart';
+import 'package:AiClopedia/models/userModel.dart';
+import 'package:AiClopedia/paywall_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -10,7 +9,6 @@ import '../constants/scrollable_page.dart';
 import '../services/ad_state.dart';
 import '../services/firebaseServices.dart';
 import '../services/image_engine.dart';
-import '../services/image_service.dart';
 
 // --- NEW: Change StatefulWidget to ScrollablePage ---
 class ImageScreen extends ScrollablePage {
@@ -28,14 +26,10 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
   String generatedImageUrl = '';
   final FirebaseServices firebaseServices = FirebaseServices();
   bool isTyping = false;
+  bool _isGenerating = false;
   late TextEditingController textEditingController;
-  // --- This will now be used with a SingleChildScrollView ---
   late ScrollController _scrollController;
   late FocusNode focusNode;
-
-  // IMPORTANT: Storing API keys in client-side code is insecure.
-  // Use a secure backend or environment variables for production apps.
-  static const String openAIApiKey = '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';
 
   @override
   void initState() {
@@ -69,7 +63,6 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
       );
     }
   }
-
 
   InterstitialAd? _interstitialAd;
   int _interstitialLoadAttempts = 0;
@@ -160,9 +153,7 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
             else
               SizedBox(
                 height: 50,
-                child: Center(
-                    child: Text('Relevant ads only',
-                        style: theme.textTheme.bodySmall)),
+                child: Center(child: Text('Relevant ads only', style: theme.textTheme.bodySmall)),
               ),
             Expanded(
               // --- NEW: Wrap content in a SingleChildScrollView ---
@@ -177,11 +168,9 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
                         aspectRatio: 1, // Keep it square
                         child: Container(
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.surface.withOpacity(0.5),
+                            color: theme.colorScheme.surface.withValues(alpha: 0.5),
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                                color: theme.colorScheme.onSurface
-                                    .withValues(alpha: 0.1)),
+                            border: Border.all(color: theme.colorScheme.onSurface.withAlpha(25)),
                           ),
                           child: _buildImageContent(theme),
                         ),
@@ -223,16 +212,25 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
                         },
                         decoration: InputDecoration.collapsed(
                             hintText: "e.g., A fox in a spacesuit, digital art",
-                            hintStyle:
-                            TextStyle(color: theme.textTheme.bodySmall?.color)),
+                            hintStyle: TextStyle(color: theme.textTheme.bodySmall?.color)),
                       ),
                     ),
-                    IconButton(
-                        onPressed: _generateImageFct,
-                        icon: Icon(
-                          Icons.send,
-                          color: theme.colorScheme.secondary,
-                        ))
+                    if (_isGenerating)
+                      const Padding(
+                        padding: EdgeInsets.all(12.0),
+                        child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      )
+                    else
+                      IconButton(
+                          onPressed: _generateImageFct,
+                          icon: Icon(
+                            Icons.send,
+                            color: theme.colorScheme.secondary,
+                          ))
                   ],
                 ),
               ),
@@ -283,9 +281,23 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
     }
   }
 
+  void _showPaywall(UserModel user) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return PaywallOverlay(
+          user: user,
+          onUnlock: () {
+            Navigator.of(context).pop();
+          },
+        );
+      },
+    );
+  }
 
   Future<void> _generateImageFct() async {
-    if (textEditingController.text.trim().isEmpty) {
+    if (_isGenerating || textEditingController.text.trim().isEmpty) { // <-- ADD GUARD CLAUSE
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Please type a prompt to generate an image."),
@@ -295,41 +307,59 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
       return;
     }
 
-    // Unfocus to hide keyboard
     focusNode.unfocus();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('generating image...')),
-    );
-
-    final prompt = textEditingController.text.trim();
-    final user = await firebaseServices.getUserInfo();
+    const int creditCost = 20;
 
     setState(() {
-      isTyping = true;
-      generatedImageUrl = ''; // Clear previous image
+      _isGenerating = true; // <-- SHOW LOADER ON BUTTON
+      isTyping = true; // <-- SHOW "GENERATING..." TEXT
+      generatedImageUrl = '';
     });
 
-    final url = await ImageEngine.instance.generate(prompt);
+    try {
+      final user = await firebaseServices.getUserInfo();
 
-    if (mounted) {
-      setState(() {
-        generatedImageUrl = url;
-      });
+      if (user.credits < creditCost) {
+        _showPaywall(user);
+        // NOTE: We return here, so the 'finally' block will reset the state.
+        return;
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Deducting $creditCost credits and generating image...')),
+        );
+      }
+
+      // Deduct credits first
+      await firebaseServices.updateUserCredits(user.userId, -creditCost);
+
+      final prompt = textEditingController.text.trim();
+      final url = await ImageEngine.instance.generate(prompt);
+
+      if (mounted) {
+        setState(() {
+          generatedImageUrl = url;
+        });
+      }
+
+      if (generatedImageUrl.isNotEmpty) {
+        await firebaseServices.saveQuestion(user, prompt);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("An error occurred: ${e.toString()}")),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGenerating = false; // <-- HIDE BUTTON LOADER
+          isTyping = false; // <-- HIDE "GENERATING..." TEXT
+        });
+      }
     }
-
-    // Only save the question if an image was generated successfully
-    if (generatedImageUrl.isNotEmpty) {
-      await firebaseServices.saveQuestion(user, prompt,);
-    }
-
-    if (mounted) {
-      setState(() {
-        isTyping = false;
-      });
-    }
-
   }
-
 
 }

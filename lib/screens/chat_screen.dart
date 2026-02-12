@@ -10,9 +10,10 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:provider/provider.dart';
 
 import '../constants/scrollable_page.dart';
+import '../models/userModel.dart';
+import '../paywall_overlay.dart';
 import '../services/ad_state.dart';
 import '../services/firebaseServices.dart';
-import '../widgets/text_widget.dart';
 
 // --- NEW: Change StatefulWidget to ScrollablePage ---
 class ChatScreen extends ScrollablePage {
@@ -30,8 +31,8 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
   final FirebaseServices firebaseServices = FirebaseServices();
   var currentUser = FirebaseAuth.instance.currentUser;
   bool _isTyping = false;
+  bool _isSending = false;
   late TextEditingController textEditingController;
-  // This already exists, which is great.
   late ScrollController _listScrollController;
   late FocusNode focusNode;
 
@@ -159,15 +160,15 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
       child: Scaffold(
         // Use theme for AppBar
         appBar: AppBar(
-          elevation: 2,
-          automaticallyImplyLeading: true,
-          title: Text("Ask AI Anything", style: theme.appBarTheme.titleTextStyle),
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: theme.appBarTheme.iconTheme?.color), onPressed: () {
-            Navigator.maybePop(context);
-          },
-          )
-        ),
+            elevation: 2,
+            automaticallyImplyLeading: true,
+            title: Text("Ask AI Anything", style: theme.appBarTheme.titleTextStyle),
+            leading: IconButton(
+              icon: Icon(Icons.arrow_back, color: theme.appBarTheme.iconTheme?.color),
+              onPressed: () {
+                Navigator.maybePop(context);
+              },
+            )),
         body: SafeArea(
           child: Column(
             children: [
@@ -179,9 +180,7 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
               else
                 SizedBox(
                   height: 50,
-                  child: Center(
-                      child: Text('Relevant ads only',
-                          style: theme.textTheme.bodySmall)),
+                  child: Center(child: Text('Relevant ads only', style: theme.textTheme.bodySmall)),
                 ),
               Flexible(
                 child: ListView.builder(
@@ -225,15 +224,24 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
                               hintStyle: TextStyle(color: theme.textTheme.bodySmall?.color)),
                         ),
                       ),
-                      IconButton(
-                          onPressed: () async {
-                            await _handleSendMessage(chatProvider);
-                          },
-                          icon: Icon(
-                            Icons.send,
-                            // Use theme accent color
-                            color: theme.colorScheme.secondary,
-                          ))
+                      if (_isSending)
+                        const Padding(
+                          padding: EdgeInsets.all(12.0),child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        )
+                      else
+                        IconButton(
+                            onPressed: () async {
+                              await _handleSendMessage(chatProvider);
+                            },
+                            icon: Icon(
+                              Icons.send,
+                              // Use theme accent color
+                              color: theme.colorScheme.secondary,
+                            )),
                     ],
                   ),
                 ),
@@ -246,22 +254,59 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
   }
 
   Future<void> _handleSendMessage(ChatProvider chatProvider) async {
-    final question = textEditingController.text.trim();
+    if (_isSending || textEditingController.text.trim().isEmpty) return; // Prevent multiple taps
 
-    if (question.isEmpty) return;
+    setState(() {
+      _isSending = true; // Show the progress indicator
+    });
+
+    final question = textEditingController.text.trim();
+    const int creditCost = 5;
 
     try {
       final user = await firebaseServices.getUserInfo();
 
+      if (user.credits < creditCost) {
+        _showPaywall(user);
+        return; // The 'finally' block will still execute
+      }
+
+      // Deduct credits and proceed
+      await firebaseServices.updateUserCredits(user.userId, -creditCost);
       await firebaseServices.saveQuestion(user, question);
+      await sendMessageFCT(chatProvider: chatProvider);
     } catch (e) {
       log("FIREBASE ERROR: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("An error occurred: ${e.toString()}")),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSending = false; // Hide the progress indicator
+        });
+      }
     }
-
-    await sendMessageFCT(chatProvider: chatProvider);
   }
 
 
+  void _showPaywall(UserModel user) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return PaywallOverlay(
+          user: user,
+          onUnlock: () {
+            Navigator.of(context).pop(); // Dismiss the overlay
+            // Optionally, retry the action after unlocking
+          },
+        );
+      },
+    );
+  }
 
   void scrollListToEND() {
     if (!_listScrollController.hasClients) return;
@@ -275,13 +320,11 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
     });
   }
 
-
   Future<void> sendMessageFCT({required ChatProvider chatProvider}) async {
     if (_isTyping) return;
+    if (textEditingController.text.trim().isEmpty) return;
 
     final msg = textEditingController.text.trim();
-
-    if (msg.isEmpty) return;
 
     setState(() {
       _isTyping = true;
@@ -296,15 +339,16 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
       await chatProvider.sendMessageAndGetAnswers(msg: msg);
     } catch (error) {
       log("CHAT ERROR: $error");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to get answer. Please try again.")),
+      );
     } finally {
       if (mounted) {
         setState(() {
           _isTyping = false;
         });
-
         scrollListToEND();
       }
     }
   }
-
 }

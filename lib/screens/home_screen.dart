@@ -24,6 +24,7 @@ import 'package:AiClopedia/screens/login/login.dart';
 import '../app_theme.dart';
 import '../constants/scrollable_page.dart';
 import '../widgets/auto_scroll_container.dart';
+import 'credits_screen.dart';
 
 
 class Homepage extends ScrollablePage {
@@ -290,6 +291,16 @@ class _HomepageState extends ScrollablePageState<Homepage> {
         ),
         // --- ADDED: Settings Button ---
         actions: [
+          TextButton.icon(
+            icon: const Icon(Icons.monetization_on, color: Colors.white),
+            label: const Text('Credits', style: TextStyle(color: Colors.white)),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CreditsScreen()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             onPressed: () {

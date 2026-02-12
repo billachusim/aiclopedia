@@ -34,70 +34,50 @@ class FirebaseServices extends ChangeNotifier {
   /// SignUp user
   Future<bool> register(
       BuildContext context, String email, String password, String nickname, String nameOfSchool) async {
-    final _user = await FirebaseAuth.instance
-        .createUserWithEmailAndPassword(email: email, password: password);
-    final _email = email;
-    final _password = password;
-    final _nickname = nickname;
-    final _nameOfSchool = nameOfSchool;
     try {
-      final email = _email;
-      final secretCode = _password;
-      final timeLastUnlocked = FieldValue.serverTimestamp();
-      final timeRegistered = FieldValue.serverTimestamp();
-      final userType = "REGULAR";
-      final nickname = _nickname;
-      final userId = _user.user?.uid;
-      final nameOfSchool = _nameOfSchool;
-      FirebaseFirestore.instance
-          .collection("users")
-          .doc(_user.user!.uid)
-          .set({
-        "nickname": nickname,
-        "userId": userId,
-        "nameOfSchool": nameOfSchool,
-        "email": email,
-        "password": password,
-        "timeLastUnlocked": timeLastUnlocked,
-        "timeRegistered": timeRegistered,
-        "userType": userType,
-        "blockedUsers": [], // <-- ADDED: For UGC moderation
-      },
-      );
-      logger.d('Completely created new ego');
-      if (kDebugMode) {
-        print('Email: $email');
+      // 1. Create user in Firebase Auth
+      final userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(email: email, password: password);
+
+      final user = userCredential.user;
+      if (user == null) {
+        throw Exception("User creation failed, user is null.");
       }
 
-      setUsersId(_user.user!.uid);
-
-      await FirebaseAuth.instance
-          .signInWithEmailAndPassword(email: email, password: secretCode)
-          .then((value) => {
-        setUsersId(value.user!.uid),
+      // 2. Create the user document in Firestore with all required fields
+      await _firebaseFirestore.collection("users").doc(user.uid).set({
+        "userId": user.uid,
+        "email": email,
+        "nickname": nickname,
+        "nameOfSchool": nameOfSchool,
+        "password": password,
+        "timeRegistered": FieldValue.serverTimestamp(),
+        "timeLastUnlocked": FieldValue.serverTimestamp(),
+        "userType": "REGULAR",
+        "credits": 50,
+        "isPremium": false,
+        "premiumExpiryDate": null,
+        "blockedUsers": [],
       });
 
-      //Fluttertoast.showToast(msg: 'Welcome To Ime Afia');
-      // Navigator.of(context).pop(); // Let the caller handle navigation
+      logger.d('Successfully created user document for ${user.uid}');
+
+      // 3. Cache the user ID locally and sign them in
+      setUsersId(user.uid);
+
       return true;
+
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'weak-password') {
-        //Fluttertoast.showToast(msg:'The password provided is too weak.');
-      } else if (e.code.length < 4) {
-        //Fluttertoast.showToast(msg:'secret code should be up to 4 digits');
-      } else if (e.code == 'email-already-in-use') {
-        //Fluttertoast.showToast(msg:'The account already exists for that email.');
-      } else if (!isValidEmail(email)) {
-        //Fluttertoast.showToast(msg:'email is not invalid');
-      }
-      logger.e(e);
-      //Fluttertoast.showToast(msg: 'error');
+      // It's better to show feedback to the user via UI state than using Toasts here.
+      logger.e('FirebaseAuthException during registration: ${e.code}');
+      // Consider re-throwing a custom exception to be handled by the UI.
       return false;
     } catch (e) {
-      logger.e(e);
+      logger.e('An unexpected error occurred during registration: $e');
       return false;
     }
   }
+
 
 
   /// Authenticate the user in
@@ -190,6 +170,15 @@ class FirebaseServices extends ChangeNotifier {
     return user;
   }
 
+  // Get a user document
+  Stream<UserModel> streamUser(String uid) {
+    return _firebaseFirestore
+        .collection('users')
+        .doc(uid)
+        .snapshots()
+        .map((snap) => UserModel.fromJson(snap.data()!));
+  }
+
 
   Future<void> saveQuestion(UserModel user, String question) async {
     final String nickname = user.nickname;
@@ -264,6 +253,33 @@ class FirebaseServices extends ChangeNotifier {
 
     return doc.data()?['answer'];
   }
+
+
+  // Update user credits
+  Future<void> updateUserCredits(String uid, int amount) async {
+    try {
+      await _firebaseFirestore.collection('users').doc(uid).update({
+        'credits': FieldValue.increment(amount),
+      });
+    } catch (e) {
+      // print(e.toString());
+    }
+  }
+
+  // Activate premium subscription
+  Future<void> activatePremiumSubscription(String uid) async {
+    try {
+      await _firebaseFirestore.collection('users').doc(uid).update({
+        'isPremium': true,
+        'premiumExpiryDate':
+        Timestamp.fromDate(DateTime.now().add(const Duration(days: 30))),
+      });
+    } catch (e) {
+      // print(e.toString());
+    }
+  }
+
+
 
 
   // --- START: UGC MODERATION METHODS ---
