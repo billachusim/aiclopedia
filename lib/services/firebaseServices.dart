@@ -256,6 +256,16 @@ class FirebaseServices extends ChangeNotifier {
     logger.d('Successfully updated image Url to question');
   }
 
+  Future<String?> getAnswer(String questionId) async {
+    final doc = await FirebaseFirestore.instance
+        .collection('questions')
+        .doc(questionId)
+        .get();
+
+    return doc.data()?['answer'];
+  }
+
+
   // --- START: UGC MODERATION METHODS ---
 
   /// Reports a question and its owner.

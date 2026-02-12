@@ -49,7 +49,7 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
 
   @override
   void dispose() {
-    Future.delayed(const Duration(seconds: 2), _showInterstitialAd);
+    Future.delayed(const Duration(seconds: 1), _showInterstitialAd);
     _scrollController.dispose();
     textEditingController.dispose();
     focusNode.dispose();

@@ -46,7 +46,7 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
 
   @override
   void dispose() {
-    Future.delayed(const Duration(seconds: 2), _showInterstitialAd);
+    Future.delayed(const Duration(seconds: 1), _showInterstitialAd);
     _listScrollController.dispose();
     textEditingController.dispose();
     chatScreenTopBanner?.dispose();

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:ui';
 import 'package:AiClopedia/app_state.dart';
 import 'package:AiClopedia/services/hidden_posts_service.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -17,7 +18,9 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../app_theme.dart';
 import '../services/ad_state.dart';
+import '../services/answer_engine.dart';
 import '../services/firebaseServices.dart';
+import '../services/image_engine.dart';
 
 class QuestionDetails extends StatefulWidget {
   final Question question;
@@ -56,6 +59,7 @@ class _QuestionDetailsState extends State<QuestionDetails> {
   }
 
   void _initializeContent() {
+
     _answer = widget.question.answer;
     _imageUrl = widget.question.imageUrl;
     _showImage = _imageUrl.isNotEmpty;
@@ -63,7 +67,13 @@ class _QuestionDetailsState extends State<QuestionDetails> {
     if (_answer.isEmpty) {
       _getAnswer();
     }
+
+    // preload image cache silently
+    if (_imageUrl.isNotEmpty) {
+      ImageEngine.instance.generate(widget.question.question);
+    }
   }
+
 
   @override
   void dispose() {
@@ -189,55 +199,74 @@ class _QuestionDetailsState extends State<QuestionDetails> {
   // --- CONTENT GENERATION METHODS ---
   Future<void> _getAnswer() async {
     if (_answer.isNotEmpty) return;
+
     setState(() => _isLoadingAnswer = true);
 
     try {
-      await Future.delayed(const Duration(seconds: 2));
-      final fakeResponse =
-          "This is a generated answer for '${widget.question.question}'. Caching ensures this is only generated once.";
 
-      if (mounted) {
-        setState(() {
-          _answer = fakeResponse;
-          _isLoadingAnswer = false;
-        });
-        firebaseServices.saveAnswer(widget.question.questionId, _answer);
-      }
-    } catch (error) {
-      if (mounted) setState(() => _isLoadingAnswer = false);
-      log("Error occurred while getting answer: $error");
-      _showToast('Failed to get answer.');
+      final resolved = await AnswerEngine.instance.resolve(
+        questionId: widget.question.questionId,
+        question: widget.question.question,
+        existingAnswer: widget.question.answer,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _answer = resolved;
+        _isLoadingAnswer = false;
+      });
+
+    } catch (e) {
+
+      setState(() => _isLoadingAnswer = false);
+
+      _showToast("Failed to load answer.");
     }
   }
 
+
   Future<void> _handleImageGeneration() async {
+
+    // already have one → just toggle
     if (_imageUrl.isNotEmpty) {
       setState(() => _showImage = !_showImage);
       return;
     }
+
     setState(() => _isLoadingImage = true);
-    _showToast('Creating image...');
 
     try {
-      final generatedUrl = await generateImage(widget.question.question);
-      if (generatedUrl != null && mounted) {
-        setState(() {
-          _imageUrl = generatedUrl;
-          _showImage = true;
-        });
-        firebaseServices.saveImageUrl(widget.question.questionId, _imageUrl);
-      }
+
+      final url =
+      await ImageEngine.instance.generate(widget.question.question);
+
+      if (!mounted) return;
+
+      setState(() {
+        _imageUrl = url;
+        _showImage = true;
+      });
+
+      firebaseServices.saveImageUrl(
+        widget.question.questionId,
+        url,
+      );
+
     } catch (e) {
-      log("Error in handleImageGeneration: $e");
+
+      _showToast("Image generation failed.");
+
     } finally {
-      if (mounted) setState(() => _isLoadingImage = false);
+
+      if (mounted) {
+        setState(() => _isLoadingImage = false);
+      }
     }
   }
 
-  Future<String?> generateImage(String userInput) async {
-    await Future.delayed(const Duration(seconds: 3));
-    return 'https://picsum.photos/512'; // Placeholder image
-  }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -339,11 +368,13 @@ class _QuestionDetailsState extends State<QuestionDetails> {
             if (_showImage && _imageUrl.isNotEmpty)
               ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: Image.network(
-                  _imageUrl,
+                child: CachedNetworkImage(
+                  imageUrl: _imageUrl,
                   fit: BoxFit.cover,
-                  loadingBuilder: (context, child, progress) => progress == null ? child : _buildLoadingIndicator(theme),
-                  errorBuilder: (context, error, stack) => _buildGlassCard(context, child: const Text('Could not load image.')),
+                  placeholder: (_, __) =>
+                      _buildLoadingIndicator(theme),
+                  errorWidget: (_, __, ___) =>
+                  const Text('Could not load image.'),
                 ),
               ),
             const Divider(height: 48),
