@@ -1,25 +1,29 @@
 import 'package:flutter/cupertino.dart';
-
 import '../models/chat_model.dart';
+import '../services/ai_service.dart';
 import '../services/api_service.dart';
 
 class ChatProvider with ChangeNotifier {
-  List<ChatModel> chatList = [];
-  List<ChatModel> get getChatList {
-    return chatList;
-  }
+  final List<ChatModel> chatList = [];
+
+  List<ChatModel> get getChatList => chatList;
 
   void addUserMessage({required String msg}) {
     chatList.add(ChatModel(msg: msg, chatIndex: 0));
     notifyListeners();
   }
 
-  Future<void> sendMessageAndGetAnswers(
-      {required String msg}) async {
-    // --- MODIFIED: Removed the 'modelId' parameter ---
-    chatList.addAll(await ApiService.sendMessage(
+  Future<void> sendMessageAndGetAnswers({
+    required String msg,
+  }) async {
+
+    final answers = await AIService.sendMessage(
       message: msg,
-    ));
+    );
+
+    chatList.addAll(answers);
+
     notifyListeners();
   }
+
 }

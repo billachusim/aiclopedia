@@ -49,10 +49,10 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
     Future.delayed(const Duration(seconds: 2), _showInterstitialAd);
     _listScrollController.dispose();
     textEditingController.dispose();
+    chatScreenTopBanner?.dispose();
     focusNode.dispose();
-    _interstitialAd?.dispose();
     super.dispose();
-    chatScreenTopBanner?.dispose(); // Also dispose the banner ad
+    _interstitialAd?.dispose();
   }
 
   // --- NEW: Implemented from ScrollablePageState ---
@@ -246,77 +246,65 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
   }
 
   Future<void> _handleSendMessage(ChatProvider chatProvider) async {
-    if (textEditingController.text.trim().isEmpty) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Getting answers. Might see an ad later.'),
-        duration: Duration(seconds: 2),
-      ),
-    );
     final question = textEditingController.text.trim();
-    final user = await firebaseServices.getUserInfo();
-    await firebaseServices.saveQuestion(user, question);
+
+    if (question.isEmpty) return;
+
+    try {
+      final user = await firebaseServices.getUserInfo();
+
+      await firebaseServices.saveQuestion(user, question);
+    } catch (e) {
+      log("FIREBASE ERROR: $e");
+    }
 
     await sendMessageFCT(chatProvider: chatProvider);
-
   }
+
 
 
   void scrollListToEND() {
-    _listScrollController.animateTo(
+    if (!_listScrollController.hasClients) return;
+
+    Future.delayed(const Duration(milliseconds: 300), () {
+      _listScrollController.animateTo(
         _listScrollController.position.maxScrollExtent,
-        duration: const Duration(seconds: 2),
-        curve: Curves.easeOut);
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOut,
+      );
+    });
   }
 
+
   Future<void> sendMessageFCT({required ChatProvider chatProvider}) async {
-    if (_isTyping) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: TextWidget(
-            label: "You cant send multiple messages at a time",
-          ),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-    if (textEditingController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: TextWidget(
-            label: "Please type a message",
-          ),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
+    if (_isTyping) return;
+
+    final msg = textEditingController.text.trim();
+
+    if (msg.isEmpty) return;
+
+    setState(() {
+      _isTyping = true;
+      chatProvider.addUserMessage(msg: msg);
+      textEditingController.clear();
+      focusNode.unfocus();
+    });
+
+    scrollListToEND();
+
     try {
-      String msg = textEditingController.text;
-      setState(() {
-        _isTyping = true;
-        chatProvider.addUserMessage(msg: msg);
-        textEditingController.clear();
-        focusNode.unfocus();
-      });
       await chatProvider.sendMessageAndGetAnswers(msg: msg);
     } catch (error) {
-      log("error $error");
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: TextWidget(
-          label: error.toString(),
-        ),
-        backgroundColor: Colors.red,
-      ));
+      log("CHAT ERROR: $error");
     } finally {
-      if(mounted) {
+      if (mounted) {
         setState(() {
-          scrollListToEND();
           _isTyping = false;
         });
+
+        scrollListToEND();
       }
     }
   }
+
 }

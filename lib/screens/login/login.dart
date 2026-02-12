@@ -7,11 +7,13 @@ import '../../widgets/bottom_nav.dart';
 import '../signup/signup.dart';
 
 class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
   @override
-  _LoginPageState createState() => _LoginPageState();
+  LoginPageState createState() => LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
@@ -80,6 +82,11 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final textColor = isDarkMode ? Colors.white : Colors.black;
+    final hintColor = isDarkMode ? Colors.white70 : Colors.black54;
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Login'),
@@ -103,7 +110,7 @@ class _LoginPageState extends State<LoginPage> {
                     style: TextStyle(
                       fontSize: 25.0,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: textColor, // Adjusted for theme
                     ),
                   ),
                 ),
@@ -111,12 +118,12 @@ class _LoginPageState extends State<LoginPage> {
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  style: TextStyle(color: Colors.white),
-                  cursorColor: Colors.white,
+                  style: TextStyle(color: textColor), // Adjusted for theme
+                  cursorColor: textColor, // Adjusted for theme
                   decoration: InputDecoration(
                     labelText: 'Email',
-                    border: OutlineInputBorder(borderSide: BorderSide(color: Colors.white)),
-                    labelStyle: TextStyle(color: Colors.white),
+                    border: OutlineInputBorder(borderSide: BorderSide(color: textColor)),
+                    labelStyle: TextStyle(color: hintColor), // Adjusted for theme
                   ),
                   validator: (value) =>
                   value == null || value.isEmpty ? 'Please enter your email' : null,
@@ -125,12 +132,12 @@ class _LoginPageState extends State<LoginPage> {
                 TextFormField(
                   controller: _passwordController,
                   obscureText: true,
-                  style: TextStyle(color: Colors.white),
-                  cursorColor: Colors.white,
+                  style: TextStyle(color: textColor), // Adjusted for theme
+                  cursorColor: textColor, // Adjusted for theme
                   decoration: InputDecoration(
                     labelText: 'Password',
-                    border: OutlineInputBorder(borderSide: BorderSide(color: Colors.white)),
-                    labelStyle: TextStyle(color: Colors.white),
+                    border: OutlineInputBorder(borderSide: BorderSide(color: textColor)),
+                    labelStyle: TextStyle(color: hintColor), // Adjusted for theme
                   ),
                   validator: (value) =>
                   value == null || value.isEmpty ? 'Please enter your password' : null,
@@ -174,12 +181,17 @@ class _LoginPageState extends State<LoginPage> {
 
   // --- ADDED: Widget for Terms and Policy ---
   Widget _buildTermsAndPolicyText() {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final textColor = isDarkMode ? Colors.white : Colors.black;
+    final subTextColor = isDarkMode ? Colors.white.withValues(alpha: 0.7) : Colors.black.withValues(alpha: 0.7);
+
     return Column(
       children: [
         Text(
           "By signing in, you are accepting Ai Clopedia's Terms Of Use and Privacy Policy",
           textAlign: TextAlign.center,
-          style: GoogleFonts.lato(fontSize: 12.0, color: Colors.white.withValues(alpha: 0.7)),
+          style: GoogleFonts.lato(fontSize: 12.0, color: subTextColor),
         ),
         SizedBox(height: 8),
         GestureDetector(
@@ -188,10 +200,10 @@ class _LoginPageState extends State<LoginPage> {
             "Tap to view Terms & Policy",
             style: GoogleFonts.lato(
               fontSize: 12.0,
-              color: Colors.white,
+              color: textColor,
               fontWeight: FontWeight.bold,
               decoration: TextDecoration.underline,
-              decorationColor: Colors.white,
+              decorationColor: textColor,
             ),
           ),
         ),

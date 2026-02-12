@@ -3,36 +3,46 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 import '../models/chat_model.dart';
 
 class ApiService {
-  // IMPORTANT: Replace with your Gemini API Key
-  static const String _apiKey = 'AIzaSyBYkSsyIuzT9fDpdKQSt8-V4gCDHnW-Yqw';
+  static const String _apiKey = 'AIzaSyAtMEiuNYGVQta2Zw7G_Ci8YfdXbr0cm1M';
 
   static Future<List<ChatModel>> sendMessage({
     required String message,
-    // The modelId parameter is removed to prevent conflicts.
-    // We will use the correct model name directly.
   }) async {
     try {
-      // --- MODIFIED: Hardcode the correct model name for text-only generation ---
-      final model = GenerativeModel(model: 'gemini-pro', apiKey: _apiKey);
+      log("Sending message to Gemini: $message");
 
-      final content = [Content.text(message)];
-      final response = await model.generateContent(content);
+      final model = GenerativeModel(
+        model: 'gemini-1.5-flash-latest',
+        apiKey: _apiKey,
+      );
 
-      if (response.text == null) {
-        throw Exception("An error occurred: Received null response from API.");
+      final response = await model.generateContent([
+        Content.text(message),
+      ]).timeout(const Duration(seconds: 30));
+
+      log("Gemini raw response: ${response.text}");
+
+      if (response.text == null || response.text!.isEmpty) {
+        throw Exception("Empty response from AI.");
       }
 
-      List<ChatModel> chatList = [
+      return [
         ChatModel(
           msg: response.text!,
           chatIndex: 1,
         ),
       ];
-      return chatList;
-    } catch (e) {
-      log("error $e");
-      // Providing a more user-friendly error message
-      throw Exception('Failed to get a response from the AI. Please check your API key and network connection.');
+    } catch (e, stack) {
+      log("GEMINI ERROR: $e");
+      log("STACK: $stack");
+
+      throw Exception(
+        'AI failed to respond.\n\nPossible causes:\n'
+            '• Invalid API key\n'
+            '• Unsupported model\n'
+            '• No internet\n'
+            '• Gemini quota exceeded',
+      );
     }
   }
 }

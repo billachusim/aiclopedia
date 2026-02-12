@@ -3,25 +3,24 @@ import 'dart:io';
 import 'package:AiClopedia/widgets/bottom_nav.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart'; // <-- ADDED: For launching URLs
+import 'package:url_launcher/url_launcher.dart';
 import '../../services/ad_state.dart';
 import '../../services/button.dart';
 import '../../services/firebaseServices.dart';
 
 class SignupPage extends StatefulWidget {
-  SignupPage();
+  const SignupPage({super.key});
 
   @override
-  _SignupPageState createState() => _SignupPageState();
+  SignupPageState createState() => SignupPageState();
 }
 
 const int maxFailedLoadAttempts = 3;
 
-class _SignupPageState extends State<SignupPage> {
+class SignupPageState extends State<SignupPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _nicknameController = TextEditingController();
@@ -77,10 +76,11 @@ class _SignupPageState extends State<SignupPage> {
   // --- ADDED: Method to launch URL ---
   void _launchPolicySite() async {
     // IMPORTANT: Replace with your actual policy URL
-    final Uri url = Uri.parse("https://sites.google.com/view/ai-clopedia/home");
+    final Uri url = Uri.parse("https://sites.google.com/view/claire-diary/claire-privacy-policy?authuser=0");
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } else {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Could not open the policy page.')),
       );
@@ -89,6 +89,11 @@ class _SignupPageState extends State<SignupPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final textColor = isDarkMode ? Colors.white : Colors.black;
+    final hintColor = isDarkMode ? Colors.white70 : Colors.black54;
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Register'),
@@ -115,7 +120,7 @@ class _SignupPageState extends State<SignupPage> {
                     style: TextStyle(
                       fontSize: 25.0,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: textColor, // Adjusted for theme
                     ),
                   ),
                 ),
@@ -123,10 +128,11 @@ class _SignupPageState extends State<SignupPage> {
                 TextFormField(
                   controller: _nicknameController,
                   keyboardType: TextInputType.text,
+                  style: TextStyle(color: textColor), // Added for theme
                   decoration: InputDecoration(
                     labelText: 'Nickname',
                     border: OutlineInputBorder(),
-                    labelStyle: TextStyle(color: Colors.white70),
+                    labelStyle: TextStyle(color: hintColor), // Adjusted for theme
                   ),
                   validator: (value) =>
                   value == null || value.isEmpty ? 'Please enter your nickname' : null,
@@ -135,10 +141,11 @@ class _SignupPageState extends State<SignupPage> {
                 TextFormField(
                   controller: _nameOfSchoolController,
                   keyboardType: TextInputType.text,
+                  style: TextStyle(color: textColor), // Added for theme
                   decoration: InputDecoration(
                     labelText: 'Name Of School Or City',
                     border: OutlineInputBorder(),
-                    labelStyle: TextStyle(color: Colors.white70),
+                    labelStyle: TextStyle(color: hintColor), // Adjusted for theme
                   ),
                   validator: (value) =>
                   value == null || value.isEmpty ? 'Please enter your school or city name' : null,
@@ -147,10 +154,11 @@ class _SignupPageState extends State<SignupPage> {
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
+                  style: TextStyle(color: textColor), // Added for theme
                   decoration: InputDecoration(
                     labelText: 'Email',
                     border: OutlineInputBorder(),
-                    labelStyle: TextStyle(color: Colors.white70),
+                    labelStyle: TextStyle(color: hintColor), // Adjusted for theme
                   ),
                   validator: (value) =>
                   value == null || value.isEmpty ? 'Please enter your email' : null,
@@ -159,10 +167,11 @@ class _SignupPageState extends State<SignupPage> {
                 TextFormField(
                   controller: _passwordController,
                   obscureText: true,
+                  style: TextStyle(color: textColor), // Added for theme
                   decoration: InputDecoration(
                     labelText: 'Password',
                     border: OutlineInputBorder(),
-                    labelStyle: TextStyle(color: Colors.white70),
+                    labelStyle: TextStyle(color: hintColor), // Adjusted for theme
                   ),
                   validator: (value) =>
                   value == null || value.isEmpty ? 'Please enter your password' : null,
@@ -236,6 +245,11 @@ class _SignupPageState extends State<SignupPage> {
 
   // --- ADDED: Widget for Terms and Policy ---
   Widget _buildTermsAndPolicyText() {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final textColor = isDarkMode ? Colors.white : Colors.black;
+    final subTextColor = isDarkMode ? Colors.white.withValues(alpha: 0.7) : Colors.black.withValues(alpha: 0.7);
+
     return Column(
       children: [
         Row(
@@ -248,9 +262,9 @@ class _SignupPageState extends State<SignupPage> {
                   _termsAccepted = value ?? false;
                 });
               },
-              checkColor: Colors.black, // Color of the check mark
-              activeColor: Colors.white,
-              side: BorderSide(color: Colors.white, width: 2),
+              checkColor: isDarkMode ? Colors.black : Colors.white, // Color of the check mark
+              activeColor: textColor,
+              side: BorderSide(color: textColor, width: 2),
             ),
             Flexible(
               child: Text.rich(
@@ -258,17 +272,17 @@ class _SignupPageState extends State<SignupPage> {
                   text: "I agree to Ai Clopedia's ",
                   style: GoogleFonts.lato(
                     fontSize: 13.0,
-                    color: Colors.white.withOpacity(0.7),
+                    color: subTextColor,
                   ),
                   children: [
                     TextSpan(
                       text: "Terms & Policy",
                       style: GoogleFonts.lato(
                         fontSize: 13.0,
-                        color: Colors.white,
+                        color: textColor,
                         fontWeight: FontWeight.bold,
                         decoration: TextDecoration.underline,
-                        decorationColor: Colors.white,
+                        decorationColor: textColor,
                       ),
                       recognizer: TapGestureRecognizer()
                         ..onTap = _launchPolicySite,
@@ -285,7 +299,7 @@ class _SignupPageState extends State<SignupPage> {
           textAlign: TextAlign.center,
           style: GoogleFonts.lato(
             fontSize: 12.0,
-            color: Colors.white.withOpacity(0.7),
+            color: subTextColor,
             height: 1.4,
           ),
         ),

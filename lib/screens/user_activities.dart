@@ -44,9 +44,8 @@ class _ActivitiesScreenState extends ScrollablePageState<ActivitiesScreen> {
 
   @override
   void dispose() {
-    Future.delayed(const Duration(seconds: 2), _showInterstitialAd);
+    _showInterstitialAd;
     activitiesScreenTopBanner?.dispose();
-    // --- NEW: Dispose ScrollController ---
     _scrollController.dispose();
     super.dispose();
     _interstitialAd?.dispose();
@@ -234,7 +233,7 @@ class _ActivitiesScreenState extends ScrollablePageState<ActivitiesScreen> {
     return GestureDetector(
       onTap: () {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Getting answers; might see an ad.')),
+          const SnackBar(content: Text('Getting answers.')),
         );
         Navigator.push(
           context,

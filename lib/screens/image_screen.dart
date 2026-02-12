@@ -33,7 +33,7 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
 
   // IMPORTANT: Storing API keys in client-side code is insecure.
   // Use a secure backend or environment variables for production apps.
-  static const String openAIApiKey = 'YOUR_OPENAI_API_KEY';
+  static const String openAIApiKey = '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';
 
   @override
   void initState() {
@@ -179,7 +179,7 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
                                 color: theme.colorScheme.onSurface
-                                    .withOpacity(0.1)),
+                                    .withValues(alpha: 0.1)),
                           ),
                           child: _buildImageContent(theme),
                         ),
@@ -297,7 +297,7 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
     focusNode.unfocus();
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Creating image; an ad might appear later.')),
+      const SnackBar(content: Text('generating image...')),
     );
 
     final prompt = textEditingController.text.trim();
@@ -323,7 +323,7 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
   }
 
   Future<void> generateImage(String userInput) async {
-    if (openAIApiKey == 'YOUR_OPENAI_API_KEY' || openAIApiKey.isEmpty) {
+    if (openAIApiKey == '' || openAIApiKey.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('API Key is not configured.'),

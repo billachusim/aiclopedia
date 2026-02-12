@@ -257,7 +257,7 @@ class _HomepageState extends ScrollablePageState<Homepage> {
 
   void _onQuestionTapped(Question question) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Getting answers; might see an ad.')),
+      const SnackBar(content: Text('Getting answers.')),
     );
     Navigator.push(
       context,
@@ -322,14 +322,15 @@ class _HomepageState extends ScrollablePageState<Homepage> {
                 SliverToBoxAdapter(
                   child: Column(
                     children: [
+                      SizedBox(height: 16),
                       if (homeTopBanner != null)
                         SizedBox(
                           height: homeTopBanner!.size.height.toDouble(),
                           child: AdWidget(ad: homeTopBanner!),
                         )
                       else
-                        const SizedBox(height: 50),
-                      const SizedBox(height: 8),
+                        const SizedBox.shrink(),
+                      const SizedBox(height: 16),
                       InspirationalQuoteCard(nickname: nickname),
                       const SizedBox(height: 24),
                       Padding(
