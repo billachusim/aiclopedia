@@ -67,7 +67,7 @@ class _QuestionDetailsState extends State<QuestionDetails> {
 
   @override
   void dispose() {
-    Future.delayed(const Duration(seconds: 2), _showInterstitialAd);
+    Future.delayed(const Duration(seconds: 1), _showInterstitialAd);
     questionDetailsTopBanner?.dispose();
     questionDetailsBottomBanner?.dispose();
     super.dispose();
@@ -216,7 +216,7 @@ class _QuestionDetailsState extends State<QuestionDetails> {
       return;
     }
     setState(() => _isLoadingImage = true);
-    _showToast('Creating image; an ad might appear later.');
+    _showToast('Creating image...');
 
     try {
       final generatedUrl = await generateImage(widget.question.question);

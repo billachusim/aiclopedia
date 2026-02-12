@@ -9,6 +9,8 @@ import 'package:provider/provider.dart';
 import '../constants/scrollable_page.dart';
 import '../services/ad_state.dart';
 import '../services/firebaseServices.dart';
+import '../services/image_engine.dart';
+import '../services/image_service.dart';
 
 // --- NEW: Change StatefulWidget to ScrollablePage ---
 class ImageScreen extends ScrollablePage {
@@ -308,7 +310,14 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
       generatedImageUrl = ''; // Clear previous image
     });
 
-    await generateImage(prompt);
+    final url = await ImageEngine.instance.generate(prompt);
+
+    if (mounted) {
+      setState(() {
+        generatedImageUrl = url;
+      });
+    }
+
     // Only save the question if an image was generated successfully
     if (generatedImageUrl.isNotEmpty) {
       await firebaseServices.saveQuestion(user, prompt,);
@@ -322,61 +331,5 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
 
   }
 
-  Future<void> generateImage(String userInput) async {
-    if (openAIApiKey == '' || openAIApiKey.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('API Key is not configured.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
 
-    final url = Uri.parse('https://api.openai.com/v1/images/generations');
-    final headers = {
-      'Authorization': 'Bearer $openAIApiKey',
-      'Content-Type': 'application/json'
-    };
-    final body = {'model': 'dall-e-2', 'prompt': userInput, 'n': 1, 'size': '512x512'};
-
-    try {
-      final response = await http.post(url, headers: headers, body: jsonEncode(body));
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode == 200) {
-        if (data['data'] != null && data['data'].isNotEmpty) {
-          if (mounted) {
-            setState(() {
-              generatedImageUrl = data['data'][0]['url'];
-            });
-          }
-        }
-      } else {
-        if (kDebugMode) {
-          print('Error generating image: $data');
-        }
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error: ${data['error']['message']}'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    } catch(e) {
-      if (kDebugMode) {
-        print('Error making HTTP request: $e');
-      }
-      if(mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('An error occurred. Check your network connection.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
 }
