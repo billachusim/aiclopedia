@@ -6,9 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
-
 import '../models/userModel.dart';
-import 'helper.dart';
 
 
 Logger logger = Logger();
@@ -58,6 +56,7 @@ class FirebaseServices extends ChangeNotifier {
         "isPremium": false,
         "premiumExpiryDate": null,
         "blockedUsers": [],
+        "hasConsentedToDataSharing": false,
       });
 
       logger.d('Successfully created user document for ${user.uid}');
@@ -179,32 +178,118 @@ class FirebaseServices extends ChangeNotifier {
         .map((snap) => UserModel.fromJson(snap.data()!));
   }
 
+  /// START: DATA SHARING CONSENT
+  Future<void> _updateConsentStatus(String userId, bool consent) async {
+    try {
+      await _firebaseFirestore
+          .collection('users')
+          .doc(userId)
+          .update({'hasConsentedToDataSharing': consent});
+      logger.d('User $userId consent updated to $consent');
+    } catch (e) {
+      logger.e('Error updating user consent status: $e');
+    }
+  }
 
-  Future<void> saveQuestion(UserModel user, String question) async {
+
+  Future<bool> checkAndRequestDataSharingConsent(
+      BuildContext context, UserModel user) async {
+    if (user.hasConsentedToDataSharing) {
+      return true; // User has already consented
+    }
+
+    // Show the disclosure dialog
+    final bool? userGaveConsent = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false, // User must make a choice
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Data & Privacy'),
+          content: const SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text(
+                    'To provide AI-powered answers, we need to share some of your data with our AI service partner (e.g., OpenAI).'),
+                SizedBox(height: 16),
+                Text('What we share:',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                Text('• Your question content.'),
+                Text('• Your nickname and school name for context.'),
+                SizedBox(height: 16),
+                Text(
+                    'This data is used solely to generate an answer and is handled according to our Privacy Policy.'),
+                SizedBox(height: 16),
+                Text('Do you agree to share this data?'),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('DECLINE'),
+              onPressed: () {
+                Navigator.of(dialogContext).pop(false); // User declined
+              },
+            ),
+            TextButton(
+              child: const Text('AGREE'),
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true); // User agreed
+              },
+            ),
+          ],
+        );
+      },
+    );
+
+    if (userGaveConsent == true) {
+      // User agreed, update their profile
+      await _updateConsentStatus(user.userId, true);
+      return true;
+    } else {
+      // User declined
+      return false;
+    }
+  }
+
+  /// END: DATA SHARING CONSENT
+
+  Future<bool> saveQuestion(UserModel user, String question) async {
+    if (!user.hasConsentedToDataSharing) {
+      logger.i('User has not consented to data sharing. Question not saved.');
+      return false; // Indicate that saving was blocked by lack of consent.
+    }
     final String nickname = user.nickname;
     final String nameOfSchool = user.nameOfSchool;
     final String questionId = uuid.v1();
 
     try {
-      await FirebaseFirestore.instance.collection('questions').doc(questionId).set({
+      await FirebaseFirestore.instance
+          .collection('questions')
+          .doc(questionId)
+          .set({
         'userId': user.userId,
         'nickname': nickname,
         'nameOfSchool': nameOfSchool,
         'question': question,
-        'answer': '', // Set answer to empty initially
-        'imageUrl': '', // Set imageUrl to empty initially
+        'answer': '',
+        'imageUrl': '',
         'questionId': questionId,
         'isFeatured': false,
         'thumbsUpCount': 0,
         'thumbsDownCount': 0,
         'timestamp': FieldValue.serverTimestamp(),
-      },SetOptions(merge: true));
-    } catch (e) {
-      print('Error sending question: $e');
-    }
+      }, SetOptions(merge: true));
 
-    prefs = await SharedPreferences.getInstance();
-    prefs!.setString('questionId', questionId);
+      prefs = await SharedPreferences.getInstance();
+      await prefs!.setString('questionId', questionId);
+
+      logger.d('Successfully saved question $questionId for user ${user.userId}');
+      return true; // Indicate success
+
+    } catch (e) {
+      logger.d('Error sending question: $e');
+      return false; // Indicate failure
+    }
   }
 
 
@@ -332,27 +417,31 @@ class FirebaseServices extends ChangeNotifier {
     await prefs?.clear(); // Use null-aware call
     logger.d('Successfully signed out');
     // Use pushAndRemoveUntil to clear the navigation stack
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => LoginPage()),
-          (Route<dynamic> route) => false,
-    );
+    if (context.mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => LoginPage()),
+            (Route<dynamic> route) => false,
+      );
+    }
   }
 
   /// [delete] all users informations
   void deleteUserAccount(BuildContext context, String userId) async {
     await FirebaseAuth.instance.signOut();
     await prefs?.clear(); // Use null-aware call
-    final _userId = userId;
+    final userId0 = userId;
     final collection = FirebaseFirestore.instance
         .collection('users');
-    await collection.doc(_userId).delete();
+    await collection.doc(userId0).delete();
     logger.d('Successfully deleted an account');
     // Use pushAndRemoveUntil to clear the navigation stack
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => LoginPage()),
-          (Route<dynamic> route) => false,
-    );
+    if (context.mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => LoginPage()),
+            (Route<dynamic> route) => false,
+      );
+    }
   }
 }

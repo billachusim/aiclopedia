@@ -11,6 +11,7 @@ class UserModel {
   final DateTime? timeLastUnlocked;
   final String userType;
   final List<String> blockedUsers;
+  final bool hasConsentedToDataSharing;
 
   UserModel({
     required this.userId,
@@ -23,6 +24,7 @@ class UserModel {
     required this.timeLastUnlocked,
     required this.userType,
     required this.blockedUsers,
+    this.hasConsentedToDataSharing = false,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -56,6 +58,7 @@ class UserModel {
       timeLastUnlocked: _toDateTime(json['timeLastUnlocked']),
       userType: json['userType'] ?? 'REGULAR',
       blockedUsers: blockedList,
+      hasConsentedToDataSharing: json['hasConsentedToDataSharing'] ?? false,
     );
   }
 
@@ -71,6 +74,7 @@ class UserModel {
       'timeLastUnlocked': timeLastUnlocked?.toIso8601String(),
       'userType': userType,
       'blockedUsers': blockedUsers,
+      'hasConsentedToDataSharing': hasConsentedToDataSharing,
     };
   }
 }
