@@ -50,7 +50,7 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
     Future.delayed(const Duration(seconds: 1), _showInterstitialAd);
     _listScrollController.dispose();
     textEditingController.dispose();
-    chatScreenTopBanner?.dispose();
+    //chatScreenTopBanner?.dispose();
     focusNode.dispose();
     super.dispose();
     _interstitialAd?.dispose();
@@ -110,7 +110,7 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
     }
   }
 
-  BannerAd? chatScreenTopBanner;
+  /*BannerAd? chatScreenTopBanner;
   bool _bannerIsLoaded = false;
 
   @override
@@ -140,7 +140,7 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
         });
       });
     }
-  }
+  }*/
 
   @override
   Widget build(BuildContext context) {
@@ -172,7 +172,7 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
         body: SafeArea(
           child: Column(
             children: [
-              if (_bannerIsLoaded && chatScreenTopBanner != null)
+              /*if (_bannerIsLoaded && chatScreenTopBanner != null)
                 SizedBox(
                   height: chatScreenTopBanner!.size.height.toDouble(),
                   child: AdWidget(ad: chatScreenTopBanner!),
@@ -181,7 +181,7 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
                 SizedBox(
                   height: 50,
                   child: Center(child: Text('Relevant ads only', style: theme.textTheme.bodySmall)),
-                ),
+                ),*/
               Flexible(
                 child: ListView.builder(
                     controller: _listScrollController,

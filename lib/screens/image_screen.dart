@@ -4,7 +4,6 @@ import 'package:AiClopedia/paywall_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:provider/provider.dart';
 import '../constants/scrollable_page.dart';
 import '../services/ad_state.dart';
 import '../services/firebaseServices.dart';
@@ -47,7 +46,7 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
     _scrollController.dispose();
     textEditingController.dispose();
     focusNode.dispose();
-    imageScreenTopBanner?.dispose();
+    //imageScreenTopBanner?.dispose();
     super.dispose();
     _interstitialAd?.dispose();
   }
@@ -104,7 +103,7 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
     _interstitialAd!.show();
   }
 
-  BannerAd? imageScreenTopBanner;
+ /* BannerAd? imageScreenTopBanner;
 
   @override
   void didChangeDependencies() {
@@ -125,7 +124,7 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
         });
       });
     }
-  }
+  }*/
 
   @override
   Widget build(BuildContext context) {
@@ -145,7 +144,7 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            if (imageScreenTopBanner != null)
+            /*if (imageScreenTopBanner != null)
               SizedBox(
                 height: imageScreenTopBanner!.size.height.toDouble(),
                 child: AdWidget(ad: imageScreenTopBanner!),
@@ -154,7 +153,7 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
               SizedBox(
                 height: 50,
                 child: Center(child: Text('Relevant ads only', style: theme.textTheme.bodySmall)),
-              ),
+              ),*/
             Expanded(
               // --- NEW: Wrap content in a SingleChildScrollView ---
               child: SingleChildScrollView(
