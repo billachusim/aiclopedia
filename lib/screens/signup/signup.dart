@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:AiClopedia/widgets/bottom_nav.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -27,7 +25,8 @@ class SignupPageState extends State<SignupPage> {
   final _nameOfSchoolController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isSigningIn = false;
-  bool _termsAccepted = false; // <-- ADDED: State for checkbox
+  bool _termsAccepted = false;
+  bool _openAIConsentAccepted = false;
   final FirebaseServices _firebaseServices = FirebaseServices();
 
 
@@ -75,8 +74,7 @@ class SignupPageState extends State<SignupPage> {
 
   // --- ADDED: Method to launch URL ---
   void _launchPolicySite() async {
-    // IMPORTANT: Replace with your actual policy URL
-    final Uri url = Uri.parse("https://sites.google.com/view/claire-diary/claire-privacy-policy?authuser=0");
+    final Uri url = Uri.parse("https://sites.google.com/view/claire-diary/ai-clopedia-privacy-policy");
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } else {
@@ -213,6 +211,14 @@ class SignupPageState extends State<SignupPage> {
       return;
     }
 
+    if (!_openAIConsentAccepted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('You must confirm AI processing consent to register.')),
+      );
+      return;
+    }
+
+
     setState(() => _isSigningIn = true);
 
     bool success = await _firebaseServices.register(
@@ -243,17 +249,21 @@ class SignupPageState extends State<SignupPage> {
     }
   }
 
-  // --- ADDED: Widget for Terms and Policy ---
   Widget _buildTermsAndPolicyText() {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
     final textColor = isDarkMode ? Colors.white : Colors.black;
-    final subTextColor = isDarkMode ? Colors.white.withValues(alpha: 0.7) : Colors.black.withValues(alpha: 0.7);
+    final subTextColor = isDarkMode
+        ? Colors.white.withValues(alpha: 0.7)
+        : Colors.black.withValues(alpha: 0.7);
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+
+        /// TERMS CHECKBOX
         Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Checkbox(
               value: _termsAccepted,
@@ -262,27 +272,26 @@ class SignupPageState extends State<SignupPage> {
                   _termsAccepted = value ?? false;
                 });
               },
-              checkColor: isDarkMode ? Colors.black : Colors.white, // Color of the check mark
+              checkColor: isDarkMode ? Colors.black : Colors.white,
               activeColor: textColor,
               side: BorderSide(color: textColor, width: 2),
             ),
-            Flexible(
+            Expanded(
               child: Text.rich(
                 TextSpan(
-                  text: "I agree to Ai Clopedia's ",
+                  text: "I agree to AI Clopedia's ",
                   style: GoogleFonts.lato(
                     fontSize: 13.0,
                     color: subTextColor,
                   ),
                   children: [
                     TextSpan(
-                      text: "Terms & Policy",
+                      text: "Terms & Privacy Policy",
                       style: GoogleFonts.lato(
                         fontSize: 13.0,
                         color: textColor,
                         fontWeight: FontWeight.bold,
                         decoration: TextDecoration.underline,
-                        decorationColor: textColor,
                       ),
                       recognizer: TapGestureRecognizer()
                         ..onTap = _launchPolicySite,
@@ -293,10 +302,44 @@ class SignupPageState extends State<SignupPage> {
             ),
           ],
         ),
-        SizedBox(height: 8),
+
+        SizedBox(height: 12),
+
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Checkbox(
+              value: _openAIConsentAccepted,
+              onChanged: (bool? value) {
+                setState(() {
+                  _openAIConsentAccepted = value ?? false;
+                });
+              },
+              checkColor: isDarkMode ? Colors.black : Colors.white,
+              activeColor: textColor,
+              side: BorderSide(color: textColor, width: 2),
+            ),
+            Expanded(
+              child: Text(
+                "I understand that my questions and prompts will be sent securely "
+                    "to OpenAI for processing to generate answers and images. "
+                    "No personal information such as my email or account details "
+                    "will be shared with OpenAI.",
+                style: GoogleFonts.lato(
+                  fontSize: 12.5,
+                  color: subTextColor,
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ],
+        ),
+
+        SizedBox(height: 10),
+
         Text(
-          "By creating an account, you agree to our Terms of Use. You confirm that you will not post objectionable content, such as nudity, hate speech, or spam, and you understand that abusive users will be banned.",
-          textAlign: TextAlign.center,
+          "By creating an account, you confirm that you will not post objectionable content, including nudity, hate speech, harassment, or spam. Violations may result in account suspension or permanent ban.",
+          textAlign: TextAlign.left,
           style: GoogleFonts.lato(
             fontSize: 12.0,
             color: subTextColor,
@@ -306,4 +349,5 @@ class SignupPageState extends State<SignupPage> {
       ],
     );
   }
+
 }

@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:io';
+import 'dart:developer';
 import 'dart:ui';
 import 'package:AiClopedia/app_state.dart';
 import 'package:AiClopedia/screens/settings_page.dart';
@@ -45,8 +45,8 @@ class _HomepageState extends ScrollablePageState<Homepage> {
   final ScrollController _scrollController = ScrollController();
 
   RewardedInterstitialAd? _interstitialAd;
-  int _interstitialLoadAttempts = 0;
-  BannerAd? homeTopBanner;
+  //int _interstitialLoadAttempts = 0;
+  //BannerAd? homeTopBanner;
   BannerAd? homeBottomBanner;
 
   // --- MODIFIED: For managing the question stream ---
@@ -62,7 +62,7 @@ class _HomepageState extends ScrollablePageState<Homepage> {
 
   void _initializeHomepage() async {
     await AppTrackingTransparency.requestTrackingAuthorization();
-    _createInterstitialAd();
+    //_createInterstitialAd();
     if (currentUser != null) {
       getUser();
       // --- ADDED: Initialize and listen for refreshes ---
@@ -81,8 +81,8 @@ class _HomepageState extends ScrollablePageState<Homepage> {
 
   @override
   void dispose() {
-    Future.delayed(const Duration(seconds: 2), _showInterstitialAd);
-    homeTopBanner?.dispose();
+    //Future.delayed(const Duration(seconds: 2), _showInterstitialAd);
+    //homeTopBanner?.dispose();
     homeBottomBanner?.dispose();
     _scrollController.dispose();
     _refreshSubscription?.cancel();
@@ -112,23 +112,9 @@ class _HomepageState extends ScrollablePageState<Homepage> {
     }
   }
 
-  Future<void> _handleRefresh() async {
-    if (mounted) {
-      setState(() {
-        homeTopBanner = null;
-        homeBottomBanner = null;
-      });
-      _loadBanners();
-      if (currentUser != null) {
-        getUser(); // Refreshes user info
-        _loadQuestionStream(); // --- MODIFIED: Reloads the stream
-      }
-    }
-    await Future.delayed(const Duration(seconds: 1));
-  }
 
 
-  void _createInterstitialAd() {
+  /*void _createInterstitialAd() {
     RewardedInterstitialAd.load(
       adUnitId: Platform.isAndroid
           ? "ca-app-pub-2404156870680632/7858400876"
@@ -166,19 +152,19 @@ class _HomepageState extends ScrollablePageState<Homepage> {
       },
     );
     _interstitialAd!.show(onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {});
-  }
+  }*/
 
   void _loadBanners() {
     final adState = Provider.of<AdState>(context, listen: false);
     adState.initialization.then((status) {
       if (!mounted) return;
       setState(() {
-        homeTopBanner = BannerAd(
+        /*homeTopBanner = BannerAd(
           size: AdSize.banner,
           adUnitId: adState.homeTopBannerAdUnitId,
           request: const AdRequest(),
           listener: BannerAdListener(onAdFailedToLoad: (ad, error) => ad.dispose()),
-        )..load();
+        )..load();*/
 
         homeBottomBanner = BannerAd(
           size: AdSize.banner,
@@ -212,40 +198,33 @@ class _HomepageState extends ScrollablePageState<Homepage> {
       userData = await firebaseServices.getUserInfo();
       blockedUserIds = userData.blockedUsers;
     } catch (e) {
-      // User document might not exist yet or there's a network issue.
-      // Proceed with an empty blocked list.
-      print("Could not fetch user info for blocking: $e");
+      log("Could not fetch user info for blocking: $e");
     }
 
     // 2. Fetch locally hidden post IDs.
     final hiddenPostIds = await hiddenPostsService.getHiddenPostIds();
 
-    // 3. Build the Firestore query.
+    // 3. Build the Firestore query without the problematic 'whereNotIn' filter.
     Query query = FirebaseFirestore.instance
         .collection('questions')
         .where('isFeatured', isEqualTo: true)
         .orderBy('timestamp', descending: true)
         .limit(50);
 
-    // 4. Add server-side filter for blocked users if the list is not empty.
-    // Firestore's 'whereNotIn' is limited to 10 items. For a scalable app,
-    // you would manage user feeds differently (e.g., a "feeds" subcollection).
-    // For now, this is sufficient.
-    if (blockedUserIds.isNotEmpty) {
-      query = query.where('userId', whereNotIn: blockedUserIds);
-    }
-
-    // 5. Listen to the stream and apply client-side filtering.
+    // 4. Listen to the stream and apply client-side filtering for both hidden posts and blocked users.
     await for (final querySnapshot in query.snapshots()) {
       final questions = querySnapshot.docs
           .map((doc) => Question.fromJson(doc.data() as Map<String, dynamic>))
           .where((question) {
-        // Apply client-side filter for locally hidden posts.
-        return !hiddenPostIds.contains(question.questionId);
+        // Client-side filter for locally hidden posts and blocked users.
+        final isHidden = hiddenPostIds.contains(question.questionId);
+        final isBlocked = blockedUserIds.contains(question.userId);
+        return !isHidden && !isBlocked;
       }).toList();
       yield questions;
     }
   }
+
 
 
   void _onAskAiPressed() {
@@ -266,6 +245,19 @@ class _HomepageState extends ScrollablePageState<Homepage> {
     );
   }
 
+
+  Future<void> _handleRefresh() async {
+    if (mounted) {
+      if (currentUser != null) {
+        getUser();
+        _loadQuestionStream();
+      }
+    }
+    await Future.delayed(const Duration(seconds: 1));
+  }
+
+
+
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -283,13 +275,11 @@ class _HomepageState extends ScrollablePageState<Homepage> {
               navigator.push(MaterialPageRoute(builder: (context) => AllActivitiesScreen()));
             }
           },
-
           child: Padding(
             padding: const EdgeInsets.all(8.0),
             child: Image.asset("assets/images/aiclop.png"),
           ),
         ),
-        // --- ADDED: Settings Button ---
         actions: [
           TextButton.icon(
             icon: const Icon(Icons.monetization_on, color: Colors.white),
@@ -315,124 +305,171 @@ class _HomepageState extends ScrollablePageState<Homepage> {
             image: AssetImage(
               isDarkMode ? "assets/images/iconWhitePetal.png" : "assets/images/iconWhitePetal.png",
             ),
-            fit: BoxFit.fitHeight,
+            fit: BoxFit.cover,
             colorFilter: isDarkMode
                 ? ColorFilter.mode(Colors.white.withAlpha(30), BlendMode.dstATop)
                 : ColorFilter.mode(Colors.white.withAlpha(30), BlendMode.dstATop),
           ),
         ),
-        child: RefreshIndicator(
-          onRefresh: _handleRefresh,
-          backgroundColor: isDarkMode ? AppTheme.darkBackground : Colors.white,
-          color: AppTheme.primaryGreen,
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 2.0, sigmaY: 2.0),
-            child: CustomScrollView(
-              controller: _scrollController,
-              slivers: [
-                SliverToBoxAdapter(
-                  child: Column(
-                    children: [
-                      SizedBox(height: 16),
-                      if (homeTopBanner != null)
-                        SizedBox(
-                          height: homeTopBanner!.size.height.toDouble(),
-                          child: AdWidget(ad: homeTopBanner!),
-                        )
-                      else
-                        const SizedBox.shrink(),
-                      const SizedBox(height: 16),
-                      InspirationalQuoteCard(nickname: nickname),
-                      const SizedBox(height: 24),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                        child: ElevatedButton.icon(
-                          icon: const Icon(Icons.psychology_alt, color: Colors.white),
-                          label: const Text(
-                            "Ask AI Anything",
-                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+        child: Column(
+          children: [
+            /*// --- Anchored Top Banner ---
+            if (homeTopBanner != null)
+              SizedBox(
+                height: homeTopBanner!.size.height.toDouble(),
+                child: AdWidget(ad: homeTopBanner!),
+              ),
+            // --- Scrollable Content ---*/
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _handleRefresh,
+                backgroundColor: isDarkMode ? AppTheme.darkBackground : Colors.white,
+                color: AppTheme.primaryGreen,
+                child: ClipRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 2.0, sigmaY: 2.0),
+                    child: CustomScrollView(
+                      controller: _scrollController,
+                      slivers: [
+                        // --- Section that scrolls away ---
+                        SliverToBoxAdapter(
+                          child: Column(
+                            children: [
+                              const SizedBox(height: 16),
+                              InspirationalQuoteCard(nickname: nickname),
+                              const SizedBox(height: 24),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                                child: ElevatedButton.icon(
+                                  icon: const Icon(Icons.psychology_alt, color: Colors.white),
+                                  label: const Text(
+                                    "Ask AI Anything",
+                                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppTheme.accentPink,
+                                    minimumSize: const Size(double.infinity, 56),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                    elevation: 8,
+                                    shadowColor: AppTheme.accentPink.withAlpha(128),
+                                  ),
+                                  onPressed: _onAskAiPressed,
+                                ),
+                              ),
+                              // The space that was above the header is now here
+                              const SizedBox(height: 24),
+                            ],
                           ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.accentPink,
-                            minimumSize: const Size(double.infinity, 56),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            elevation: 8,
-                            shadowColor: AppTheme.accentPink.withAlpha(128),
-                          ),
-                          onPressed: _onAskAiPressed,
                         ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            "Community Questions:", // <-- Changed Title
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 18),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // --- MODIFIED: Switched to the new _questionStream ---
-                StreamBuilder<List<Question>>(
-                  stream: _questionStream,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting && snapshot.data == null) {
-                      return const SliverFillRemaining(child: Center(child: CircularProgressIndicator()));
-                    }
-                    if (snapshot.hasError) {
-                      return SliverToBoxAdapter(child: Center(child: Text("Error: ${snapshot.error}")));
-                    }
-                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return SliverToBoxAdapter(
-                        child: Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(32.0),
-                            child: Text(
-                              'No questions yet. Pull down to refresh.',
-                              style: Theme.of(context).textTheme.bodyMedium,
-                              textAlign: TextAlign.center,
+
+                        // --- Sticky Header ---
+                        SliverPersistentHeader(
+                          pinned: true,
+                          delegate: _SliverHeaderDelegate(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  "Community Questions:",
+                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 18),
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      );
-                    }
-                    final questions = snapshot.data!;
-                    return SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                          final question = questions[index];
-                          return GestureDetector(
-                            onTap: () => _onQuestionTapped(question),
-                            child: QuestionWidget(question: question),
-                          );
-                        },
-                        childCount: questions.length,
-                      ),
-                    );
-                  },
-                ),
-                SliverToBoxAdapter(
-                  child: Column(
-                    children: [
-                      if (homeBottomBanner != null)
-                        Container(
-                          margin: const EdgeInsets.only(top: 20),
-                          height: homeBottomBanner!.size.height.toDouble(),
-                          child: AdWidget(ad: homeBottomBanner!),
-                        )
-                      else
-                        const SizedBox(height: 50),
-                    ],
+
+                        // --- Scrollable List of Questions ---
+                        StreamBuilder<List<Question>>(
+                          stream: _questionStream,
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState == ConnectionState.waiting && snapshot.data == null) {
+                              return const SliverFillRemaining(child: Center(child: CircularProgressIndicator()));
+                            }
+                            if (snapshot.hasError) {
+                              return SliverToBoxAdapter(child: Center(child: Text("Error: ${snapshot.error}")));
+                            }
+                            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                              return SliverToBoxAdapter(
+                                child: Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(32.0),
+                                    child: Text(
+                                      'No questions yet. Pull down to refresh.',
+                                      style: Theme.of(context).textTheme.bodyMedium,
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+                            final questions = snapshot.data!;
+                            return SliverList(
+                              delegate: SliverChildBuilderDelegate(
+                                    (context, index) {
+                                  final question = questions[index];
+                                  return GestureDetector(
+                                    onTap: () => _onQuestionTapped(question),
+                                    child: QuestionWidget(question: question),
+                                  );
+                                },
+                                childCount: questions.length,
+                              ),
+                            );
+                          },
+                        ),
+                        // Added padding at the end of the scroll view
+                        const SliverToBoxAdapter(
+                          child: SizedBox(height: 16),
+                        ),
+                      ],
+                    ),
                   ),
-                )
-              ],
+                ),
+              ),
             ),
-          ),
+            // --- Anchored Bottom Banner ---
+            if (homeBottomBanner != null)
+              SizedBox(
+                height: homeBottomBanner!.size.height.toDouble(),
+                child: AdWidget(ad: homeBottomBanner!),
+              ),
+          ],
         ),
       ),
     );
   }
+
+
+
 }
+
+
+
+class _SliverHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
+  final double height;
+
+  _SliverHeaderDelegate({required this.child, this.height = 48.0});
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: Theme.of(context).scaffoldBackgroundColor.withAlpha(220), // Blended background
+      child: child,
+    );
+  }
+
+  @override
+  double get maxExtent => height;
+
+  @override
+  double get minExtent => height;
+
+  @override
+  bool shouldRebuild(SliverPersistentHeaderDelegate oldDelegate) {
+    return true; // Rebuild if properties change
+  }
+}
+

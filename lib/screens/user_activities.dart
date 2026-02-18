@@ -44,11 +44,10 @@ class _ActivitiesScreenState extends ScrollablePageState<ActivitiesScreen> {
 
   @override
   void dispose() {
-    _showInterstitialAd;
+    Future.delayed(const Duration(seconds: 2), _showInterstitialAd);
     activitiesScreenTopBanner?.dispose();
     _scrollController.dispose();
     super.dispose();
-    _interstitialAd?.dispose();
   }
 
   // --- NEW: Implemented from ScrollablePageState ---

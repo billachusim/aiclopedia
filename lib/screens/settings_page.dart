@@ -1,6 +1,8 @@
 import 'package:AiClopedia/services/firebaseServices.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({Key? key}) : super(key: key);
@@ -12,6 +14,18 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   final FirebaseServices _firebaseServices = FirebaseServices();
   final User? currentUser = FirebaseAuth.instance.currentUser;
+
+  void _launchDeletionPolicy() async {
+    final Uri url = Uri.parse("https://sites.google.com/view/claire-diary/delete-your-dear-claire-account?authuser=0");
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open the policy page.')),
+      );
+    }
+  }
 
   void _signOut() {
     _firebaseServices.signOut(context);
@@ -36,6 +50,7 @@ class _SettingsPageState extends State<SettingsPage> {
               'This action is permanent and cannot be undone. All your data will be removed. Are you sure you want to proceed?'),
           actions: <Widget>[
             TextButton(
+              style: TextButton.styleFrom(foregroundColor: Colors.green),
               child: const Text('Cancel'),
               onPressed: () {
                 Navigator.of(context).pop();
@@ -45,7 +60,6 @@ class _SettingsPageState extends State<SettingsPage> {
               style: TextButton.styleFrom(foregroundColor: Colors.red),
               child: const Text('Delete'),
               onPressed: () {
-                // The original firebaseServices.deleteUserAccount handles navigation.
                 _firebaseServices.deleteUserAccount(context, currentUser!.uid);
               },
             ),
@@ -75,8 +89,23 @@ class _SettingsPageState extends State<SettingsPage> {
             title: const Text('Delete Account', style: TextStyle(color: Colors.red)),
             onTap: _confirmAndDeleteAccount,
           ),
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0, left: 16.0, right: 16.0),
+            child: RichText(
+              text: TextSpan(
+                text: 'Review and confirm data deletion.',
+                style: const TextStyle(
+                  color: Colors.blue,
+                  decoration: TextDecoration.underline,
+                ),
+                recognizer: TapGestureRecognizer()
+                  ..onTap = _launchDeletionPolicy,
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 }
+

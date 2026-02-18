@@ -4,23 +4,21 @@ import 'package:AiClopedia/paywall_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:provider/provider.dart';
 import '../constants/scrollable_page.dart';
 import '../services/ad_state.dart';
 import '../services/firebaseServices.dart';
 import '../services/image_engine.dart';
 
-// --- NEW: Change StatefulWidget to ScrollablePage ---
 class ImageScreen extends ScrollablePage {
   const ImageScreen({super.key});
 
   @override
-  // --- NEW: The State class now extends ScrollablePageState ---
   ScrollablePageState<ImageScreen> createState() => _ImageScreenState();
 }
 
 const int maxFailedLoadAttempts = 3;
 
-// --- NEW: Extend from ScrollablePageState ---
 class _ImageScreenState extends ScrollablePageState<ImageScreen> {
   String generatedImageUrl = '';
   final FirebaseServices firebaseServices = FirebaseServices();
@@ -30,9 +28,11 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
   late ScrollController _scrollController;
   late FocusNode focusNode;
 
+  // --- UNCOMMENTED ---
+  BannerAd? imageScreenTopBanner;
+
   @override
   void initState() {
-    // --- Controller name changed for clarity ---
     _scrollController = ScrollController();
     textEditingController = TextEditingController();
     focusNode = FocusNode();
@@ -40,18 +40,39 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
     super.initState();
   }
 
+  // --- UNCOMMENTED ---
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (imageScreenTopBanner == null) {
+      final adState = Provider.of<AdState>(context);
+      adState.initialization.then((status) {
+        if (!mounted) return;
+        setState(() {
+          imageScreenTopBanner = BannerAd(
+              size: AdSize.banner,
+              adUnitId: adState.imageScreenTopBannerAdUnitId,
+              request: const AdRequest(),
+              listener: BannerAdListener(
+                onAdFailedToLoad: (ad, error) => ad.dispose(),
+              ))
+            ..load();
+        });
+      });
+    }
+  }
+
+
   @override
   void dispose() {
-    Future.delayed(const Duration(seconds: 1), _showInterstitialAd);
+    Future.delayed(const Duration(seconds: 2), _showInterstitialAd);
     _scrollController.dispose();
     textEditingController.dispose();
     focusNode.dispose();
-    //imageScreenTopBanner?.dispose();
+    imageScreenTopBanner?.dispose();
     super.dispose();
-    _interstitialAd?.dispose();
   }
 
-  // --- NEW: Implemented from ScrollablePageState ---
   @override
   void scrollToTop() {
     if (_scrollController.hasClients) {
@@ -103,28 +124,6 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
     _interstitialAd!.show();
   }
 
- /* BannerAd? imageScreenTopBanner;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (imageScreenTopBanner == null) {
-      final adState = Provider.of<AdState>(context);
-      adState.initialization.then((status) {
-        if (!mounted) return;
-        setState(() {
-          imageScreenTopBanner = BannerAd(
-              size: AdSize.banner,
-              adUnitId: adState.imageScreenTopBannerAdUnitId,
-              request: const AdRequest(),
-              listener: BannerAdListener(
-                onAdFailedToLoad: (ad, error) => ad.dispose(),
-              ))
-            ..load();
-        });
-      });
-    }
-  }*/
 
   @override
   Widget build(BuildContext context) {
@@ -132,42 +131,34 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        // Use theme colors
         backgroundColor: theme.appBarTheme.backgroundColor,
         titleTextStyle: theme.appBarTheme.titleTextStyle,
         iconTheme: theme.appBarTheme.iconTheme,
         elevation: 2,
         title: const Text("Generate Any Image"),
-        // Use a standard back button that pops the screen
         automaticallyImplyLeading: true,
       ),
       body: SafeArea(
         child: Column(
           children: [
-            /*if (imageScreenTopBanner != null)
+            // --- MODIFIED: Anchored Banner Ad ---
+            if (imageScreenTopBanner != null)
               SizedBox(
                 height: imageScreenTopBanner!.size.height.toDouble(),
                 child: AdWidget(ad: imageScreenTopBanner!),
-              )
-            else
-              SizedBox(
-                height: 50,
-                child: Center(child: Text('Relevant ads only', style: theme.textTheme.bodySmall)),
-              ),*/
+              ),
             Expanded(
-              // --- NEW: Wrap content in a SingleChildScrollView ---
               child: SingleChildScrollView(
                 controller: _scrollController,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     children: [
-                      // --- NEW: Improved UI for image display area ---
                       AspectRatio(
-                        aspectRatio: 1, // Keep it square
+                        aspectRatio: 1,
                         child: Container(
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.surface.withValues(alpha: 0.5),
+                            color: theme.colorScheme.surface.withAlpha(128), // Adjusted opacity
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(color: theme.colorScheme.onSurface.withAlpha(25)),
                           ),
@@ -194,7 +185,6 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
                   ),
                 ),
             ],
-            // --- NEW: Theme-aware input area ---
             Material(
               color: theme.colorScheme.surface,
               child: Padding(
@@ -240,11 +230,10 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
     );
   }
 
-  // --- NEW: Helper widget to build image content area ---
   Widget _buildImageContent(ThemeData theme) {
     if (generatedImageUrl.isNotEmpty) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(15), // Match container's radius
+        borderRadius: BorderRadius.circular(15),
         child: Image.network(
           generatedImageUrl,
           fit: BoxFit.cover,
@@ -296,7 +285,7 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
   }
 
   Future<void> _generateImageFct() async {
-    if (_isGenerating || textEditingController.text.trim().isEmpty) { // <-- ADD GUARD CLAUSE
+    if (_isGenerating || textEditingController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Please type a prompt to generate an image."),
@@ -310,8 +299,8 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
     const int creditCost = 20;
 
     setState(() {
-      _isGenerating = true; // <-- SHOW LOADER ON BUTTON
-      isTyping = true; // <-- SHOW "GENERATING..." TEXT
+      _isGenerating = true;
+      isTyping = true;
       generatedImageUrl = '';
     });
 
@@ -320,7 +309,6 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
 
       if (user.credits < creditCost) {
         _showPaywall(user);
-        // NOTE: We return here, so the 'finally' block will reset the state.
         return;
       }
 
@@ -330,7 +318,6 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
         );
       }
 
-      // Deduct credits first
       await firebaseServices.updateUserCredits(user.userId, -creditCost);
 
       final prompt = textEditingController.text.trim();
@@ -354,11 +341,11 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
     } finally {
       if (mounted) {
         setState(() {
-          _isGenerating = false; // <-- HIDE BUTTON LOADER
-          isTyping = false; // <-- HIDE "GENERATING..." TEXT
+          _isGenerating = false;
+          isTyping = false;
         });
       }
     }
   }
-
 }
+

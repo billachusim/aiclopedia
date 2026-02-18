@@ -26,7 +26,7 @@ class _CreditsScreenState extends State<CreditsScreen> {
   @override
   Widget build(BuildContext context) {
     final textTheme = GoogleFonts.interTextTheme();
-    final user = Provider.of<User?>(context);
+    final user = FirebaseAuth.instance.currentUser;
     final db = FirebaseServices();
 
     return Scaffold(
@@ -44,66 +44,64 @@ class _CreditsScreenState extends State<CreditsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Live Credit Balance Display
-              if (user != null)
-                FutureBuilder<UserModel>(
-                  future: db.getUserInfo(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      // Show a placeholder while loading
-                      return Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: const [
-                            Text(
-                              "YOUR BALANCE",
-                              style: TextStyle(
-                                  color: Colors.white70, letterSpacing: 1.5),
-                            ),
-                            SizedBox(height: 8),
-                            CupertinoActivityIndicator(radius: 12),
-                          ],
-                        ),
-                      );
-                    }
-                    if (snapshot.hasError || !snapshot.hasData) {
-                      // Handle error or no data case
-                      return Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 20),
-                        child: const Center(
-                          child: Text(
-                            "Could not load balance.",
-                            style: TextStyle(color: Colors.white70),
-                          ),
-                        ),
-                      );
-                    }
-                    final userModel = snapshot.data!;
-                    return Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          const Text(
-                            "YOUR BALANCE",
-                            style: TextStyle(
-                                color: Colors.white70, letterSpacing: 1.5),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            "${userModel.credits} Credits",
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const Text(
+                      "YOUR BALANCE",
+                      style: TextStyle(
+                          color: Colors.white70, letterSpacing: 1.5),
+                    ),
+                    const SizedBox(height: 8),
+                    // Logic to display balance based on user state
+                    Builder(
+                      builder: (context) {
+                        // If user is not logged in, show 0 credits
+                        if (user == null) {
+                          return Text(
+                            "0 Credits",
                             style: textTheme.headlineMedium!.copyWith(
                               fontWeight: FontWeight.w700,
                             ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+                          );
+                        }
+                        return StreamBuilder<UserModel>(
+                          stream: db.streamUser(user.uid),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState == ConnectionState.waiting) {
+                              return const CupertinoActivityIndicator(radius: 12);
+                            }
+                            if (snapshot.hasError || !snapshot.hasData) {
+                              return Text(
+                                "0 Credits",
+                                style: textTheme.headlineMedium!.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              );
+                            }
+                            final credits = snapshot.data!.credits;
+                            return Text(
+                              "$credits Credits",
+                              style: textTheme.headlineMedium!.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+
+// --- END OF REPLACEMENT ---
+
+                  ],
                 ),
+              ),
+
+// --- END OF REPLACEMENT ---
+
 
 
               const SizedBox(height: 10),
@@ -348,7 +346,7 @@ class _CreditsScreenState extends State<CreditsScreen> {
                   style: TextStyle(color: Colors.white, fontSize: 12)),
               GestureDetector(
                 onTap: () => _launchUrl(
-                    "https://sites.google.com/view/claire-diary/claire-privacy-policy"), // Replace with your privacy policy URL
+                    "https://sites.google.com/view/claire-diary/ai-clopedia-privacy-policy"), // Replace with your privacy policy URL
                 child: const Text("Privacy Policy", style: linkStyle),
               ),
             ],

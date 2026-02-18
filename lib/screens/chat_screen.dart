@@ -15,18 +15,15 @@ import '../paywall_overlay.dart';
 import '../services/ad_state.dart';
 import '../services/firebaseServices.dart';
 
-// --- NEW: Change StatefulWidget to ScrollablePage ---
 class ChatScreen extends ScrollablePage {
   const ChatScreen({super.key});
 
   @override
-  // --- NEW: The State class now extends ScrollablePageState ---
   ScrollablePageState<ChatScreen> createState() => _ChatScreenState();
 }
 
 const int maxFailedLoadAttempts = 3;
 
-// --- NEW: Extend from ScrollablePageState ---
 class _ChatScreenState extends ScrollablePageState<ChatScreen> {
   final FirebaseServices firebaseServices = FirebaseServices();
   var currentUser = FirebaseAuth.instance.currentUser;
@@ -35,6 +32,9 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
   late TextEditingController textEditingController;
   late ScrollController _listScrollController;
   late FocusNode focusNode;
+
+  // --- UNCOMMENTED ---
+  BannerAd? chatScreenTopBanner;
 
   @override
   void initState() {
@@ -45,18 +45,41 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
     super.initState();
   }
 
+  // --- UNCOMMENTED and CORRECTED ---
   @override
-  void dispose() {
-    Future.delayed(const Duration(seconds: 1), _showInterstitialAd);
-    _listScrollController.dispose();
-    textEditingController.dispose();
-    //chatScreenTopBanner?.dispose();
-    focusNode.dispose();
-    super.dispose();
-    _interstitialAd?.dispose();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (chatScreenTopBanner == null) {
+      final adState = Provider.of<AdState>(context);
+      adState.initialization.then((status) {
+        if (!mounted) return;
+        setState(() {
+          chatScreenTopBanner = BannerAd(
+              size: AdSize.banner,
+              adUnitId: adState.chatScreenTopBannerAdUnitId,
+              request: const AdRequest(),
+              listener: BannerAdListener(
+                onAdFailedToLoad: (ad, error) {
+                  ad.dispose();
+                },
+              ))
+            ..load();
+        });
+      });
+    }
   }
 
-  // --- NEW: Implemented from ScrollablePageState ---
+
+  @override
+  void dispose() {
+    Future.delayed(const Duration(seconds: 2), _showInterstitialAd);
+    _listScrollController.dispose();
+    textEditingController.dispose();
+    focusNode.dispose();
+    chatScreenTopBanner?.dispose();
+    super.dispose();
+  }
+
   @override
   void scrollToTop() {
     if (_listScrollController.hasClients) {
@@ -110,55 +133,19 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
     }
   }
 
-  /*BannerAd? chatScreenTopBanner;
-  bool _bannerIsLoaded = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Load banner only if it hasn't been loaded yet
-    if (chatScreenTopBanner == null) {
-      final adState = Provider.of<AdState>(context);
-      adState.initialization.then((status) {
-        if (!mounted) return;
-        setState(() {
-          chatScreenTopBanner = BannerAd(
-              size: AdSize.banner,
-              adUnitId: adState.chatScreenTopBannerAdUnitId,
-              request: const AdRequest(),
-              listener: BannerAdListener(
-                onAdLoaded: (ad) {
-                  setState(() {
-                    _bannerIsLoaded = true;
-                  });
-                },
-                onAdFailedToLoad: (ad, error) {
-                  ad.dispose();
-                },
-              ))
-            ..load();
-        });
-      });
-    }
-  }*/
-
   @override
   Widget build(BuildContext context) {
     final chatProvider = Provider.of<ChatProvider>(context);
-    // Use theme colors
     final theme = Theme.of(context);
 
     return WillPopScope(
       onWillPop: () {
-        // Clear chat history
         if (chatProvider.getChatList.isNotEmpty) {
           chatProvider.chatList.clear();
         }
-        // Allow pop to be handled by parent WillPopScope
         return Future.value(true);
       },
       child: Scaffold(
-        // Use theme for AppBar
         appBar: AppBar(
             elevation: 2,
             automaticallyImplyLeading: true,
@@ -172,16 +159,12 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
         body: SafeArea(
           child: Column(
             children: [
-              /*if (_bannerIsLoaded && chatScreenTopBanner != null)
+              // --- MODIFIED: Anchored Banner Ad ---
+              if (chatScreenTopBanner != null)
                 SizedBox(
                   height: chatScreenTopBanner!.size.height.toDouble(),
                   child: AdWidget(ad: chatScreenTopBanner!),
-                )
-              else
-                SizedBox(
-                  height: 50,
-                  child: Center(child: Text('Relevant ads only', style: theme.textTheme.bodySmall)),
-                ),*/
+                ),
               Flexible(
                 child: ListView.builder(
                     controller: _listScrollController,
@@ -195,7 +178,7 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
               ),
               if (_isTyping) ...[
                 SpinKitThreeBounce(
-                  color: theme.colorScheme.secondary, // Use accent color
+                  color: theme.colorScheme.secondary,
                   size: 18,
                 ),
               ],
@@ -203,7 +186,6 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
                 height: 15,
               ),
               Material(
-                // Use theme color for the input area background
                 color: theme.colorScheme.surface,
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
@@ -212,7 +194,6 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
                       Expanded(
                         child: TextField(
                           focusNode: focusNode,
-                          // Use theme color for text
                           style: TextStyle(color: theme.colorScheme.onSurface),
                           controller: textEditingController,
                           onSubmitted: (value) async {
@@ -220,17 +201,17 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
                           },
                           decoration: InputDecoration.collapsed(
                               hintText: "Ask me anything. I mean anything!",
-                              // Use theme color for hint text
                               hintStyle: TextStyle(color: theme.textTheme.bodySmall?.color)),
                         ),
                       ),
                       if (_isSending)
                         const Padding(
-                          padding: EdgeInsets.all(12.0),child: SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
+                          padding: EdgeInsets.all(12.0),
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
                         )
                       else
                         IconButton(
@@ -239,7 +220,6 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
                             },
                             icon: Icon(
                               Icons.send,
-                              // Use theme accent color
                               color: theme.colorScheme.secondary,
                             )),
                     ],
@@ -254,10 +234,10 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
   }
 
   Future<void> _handleSendMessage(ChatProvider chatProvider) async {
-    if (_isSending || textEditingController.text.trim().isEmpty) return; // Prevent multiple taps
+    if (_isSending || textEditingController.text.trim().isEmpty) return;
 
     setState(() {
-      _isSending = true; // Show the progress indicator
+      _isSending = true;
     });
 
     final question = textEditingController.text.trim();
@@ -268,10 +248,9 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
 
       if (user.credits < creditCost) {
         _showPaywall(user);
-        return; // The 'finally' block will still execute
+        return;
       }
 
-      // Deduct credits and proceed
       await firebaseServices.updateUserCredits(user.userId, -creditCost);
       await firebaseServices.saveQuestion(user, question);
       await sendMessageFCT(chatProvider: chatProvider);
@@ -285,7 +264,7 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
     } finally {
       if (mounted) {
         setState(() {
-          _isSending = false; // Hide the progress indicator
+          _isSending = false;
         });
       }
     }
@@ -300,8 +279,7 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
         return PaywallOverlay(
           user: user,
           onUnlock: () {
-            Navigator.of(context).pop(); // Dismiss the overlay
-            // Optionally, retry the action after unlocking
+            Navigator.of(context).pop();
           },
         );
       },
