@@ -2,10 +2,7 @@ import 'package:AiClopedia/widgets/bottom_nav.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../services/ad_state.dart';
 import '../../services/button.dart';
 import '../../services/firebaseServices.dart';
 
@@ -45,32 +42,7 @@ class SignupPageState extends State<SignupPage> {
   }
 
 
-  BannerAd? signupBottomBanner;
-  bool _bannerIsLoaded = false;
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final adState = Provider.of<AdState>(context);
-
-    adState.initialization.then((status) {
-      if (mounted && signupBottomBanner == null) {
-        setState(() {
-          signupBottomBanner = BannerAd(
-              size: AdSize.banner,
-              adUnitId: adState.signupBottomBannerAdUnitId,
-              request: const AdRequest(),
-              listener: BannerAdListener(
-                onAdLoaded: (ad) => setState(() => _bannerIsLoaded = true),
-                onAdFailedToLoad: (ad, error) {
-                  ad.dispose();
-                },
-              ))
-            ..load();
-        });
-      }
-    });
-  }
 
   // --- ADDED: Method to launch URL ---
   void _launchPolicySite() async {
@@ -182,14 +154,6 @@ class SignupPageState extends State<SignupPage> {
                   text: 'Register',
                   press: _handleRegistration, // <-- MODIFIED: Extracted to a method
                 ),
-                SizedBox(height: 20.0),
-                if (_bannerIsLoaded && signupBottomBanner != null)
-                  SizedBox(
-                    height: signupBottomBanner!.size.height.toDouble(),
-                    child: AdWidget(ad: signupBottomBanner!),
-                  )
-                else
-                  SizedBox(height: 50),
               ],
             ),
           ),

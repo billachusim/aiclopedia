@@ -48,6 +48,7 @@ class _ActivitiesScreenState extends ScrollablePageState<ActivitiesScreen> {
     activitiesScreenTopBanner?.dispose();
     _scrollController.dispose();
     super.dispose();
+    _interstitialAd?.dispose();
   }
 
   // --- NEW: Implemented from ScrollablePageState ---

@@ -291,12 +291,29 @@ class _HomepageState extends ScrollablePageState<Homepage> {
               );
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsPage()));
-            },
-          ),
+          if (currentUser == null)
+            TextButton.icon(
+              icon: const Icon(Icons.login, color: Colors.white),
+              label: const Text('Login', style: TextStyle(color: Colors.white)),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const LoginPage(),
+                  ),
+                );
+              },
+            )
+          else
+            TextButton.icon(
+              icon: const Icon(Icons.settings_outlined),
+              label:
+              const Text('Settings', style: TextStyle(color: Colors.white)),
+              onPressed: () {
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => const SettingsPage()));
+              },
+            ),
         ],
       ),
       body: Container(
@@ -395,7 +412,7 @@ class _HomepageState extends ScrollablePageState<Homepage> {
                                   child: Padding(
                                     padding: const EdgeInsets.all(32.0),
                                     child: Text(
-                                      'No questions yet. Pull down to refresh.',
+                                      'No questions yet. Please log in first ',
                                       style: Theme.of(context).textTheme.bodyMedium,
                                       textAlign: TextAlign.center,
                                     ),

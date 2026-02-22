@@ -29,7 +29,7 @@ class _BottomNavbarState extends State<BottomNavBar> {
   // --- FINAL: Create GlobalKeys for ALL scrollable pages ---
   final GlobalKey<ScrollablePageState<Homepage>> _homepageKey = GlobalKey();
   final GlobalKey<ScrollablePageState<ChatScreen>> _chatScreenKey = GlobalKey();
-  final GlobalKey<ScrollablePageState<ImageScreen>> _imageScreenKey = GlobalKey();
+  //final GlobalKey<ScrollablePageState<ImageScreen>> _imageScreenKey = GlobalKey();
   final GlobalKey<ScrollablePageState<ActivitiesScreen>> _activitiesKey = GlobalKey();
 
   // --- FINAL: Store all keys in the map for easy access ---
@@ -43,8 +43,8 @@ class _BottomNavbarState extends State<BottomNavBar> {
     _pageKeys = {
       0: _homepageKey,
       1: _chatScreenKey,
-      2: _imageScreenKey,
-      3: _activitiesKey,
+     //2: _imageScreenKey,
+      2: _activitiesKey,
     };
   }
 
@@ -80,7 +80,7 @@ class _BottomNavbarState extends State<BottomNavBar> {
   late final List<Widget> screens = [
     Homepage(key: _homepageKey),
     ChatScreen(key: _chatScreenKey),
-    ImageScreen(key: _imageScreenKey),
+    //ImageScreen(key: _imageScreenKey),
     ActivitiesScreen(key: _activitiesKey),
   ];
 
@@ -95,11 +95,11 @@ class _BottomNavbarState extends State<BottomNavBar> {
       activeIcon: Icon(Icons.question_answer_rounded),
       label: 'Ask AI',
     ),
-    const BottomNavigationBarItem(
+    /*const BottomNavigationBarItem(
       icon: Icon(Icons.image_outlined),
       activeIcon: Icon(Icons.image_rounded),
       label: 'Generate Image',
-    ),
+    ),*/
     const BottomNavigationBarItem(
       icon: Icon(Icons.calendar_month_outlined),
       activeIcon: Icon(Icons.calendar_month_rounded),

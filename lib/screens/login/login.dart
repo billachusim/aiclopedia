@@ -189,6 +189,12 @@ class LoginPageState extends State<LoginPage> {
     return Column(
       children: [
         Text(
+          "By signing in, you consent to your questions being sent to OpenAI to process and return answers.",
+          textAlign: TextAlign.center,
+          style: GoogleFonts.lato(fontSize: 12.0, color: subTextColor),
+        ),
+        SizedBox(height: 8),
+        Text(
           "By signing in, you are accepting Ai Clopedia's Terms Of Use and Privacy Policy",
           textAlign: TextAlign.center,
           style: GoogleFonts.lato(fontSize: 12.0, color: subTextColor),

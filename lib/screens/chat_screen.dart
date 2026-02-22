@@ -78,6 +78,7 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
     focusNode.dispose();
     chatScreenTopBanner?.dispose();
     super.dispose();
+    _interstitialAd?.dispose();
   }
 
   @override
