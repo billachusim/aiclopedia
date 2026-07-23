@@ -87,6 +87,18 @@ class IAPController extends GetxController {
     }
   }
 
+  Future<void> restorePurchases() async {
+    try {
+      await _inAppPurchase.restorePurchases();
+    } catch (e) {
+      if (kDebugMode) {
+        print("Restore Error: $e");
+      }
+      Get.snackbar("Restore Failed", "An error occurred while restoring purchases.",
+          snackPosition: SnackPosition.BOTTOM);
+    }
+  }
+
   Future<void> _listenToPurchaseUpdated(
       List<PurchaseDetails> purchaseDetailsList) async {
     for (var purchaseDetails in purchaseDetailsList) {

@@ -13,10 +13,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../app_theme.dart';
+import '../models/userModel.dart';
+import '../paywall_overlay.dart';
 import '../services/ad_state.dart';
 import '../services/answer_engine.dart';
 import '../services/firebaseServices.dart';
@@ -203,6 +206,16 @@ class _QuestionDetailsState extends State<QuestionDetails> {
     setState(() => _isLoadingAnswer = true);
 
     try {
+      final prefs = await SharedPreferences.getInstance();
+      bool hasConsent = prefs.getBool('ai_consent') ?? false;
+
+      if (!hasConsent) {
+        bool? agreed = await _showAiConsentDialog();
+        if (agreed != true) {
+          if (mounted) setState(() => _isLoadingAnswer = false);
+          return;
+        }
+      }
 
       final resolved = await AnswerEngine.instance.resolve(
         questionId: widget.question.questionId,
@@ -218,11 +231,52 @@ class _QuestionDetailsState extends State<QuestionDetails> {
       });
 
     } catch (e) {
-
-      setState(() => _isLoadingAnswer = false);
-
+      if (mounted) setState(() => _isLoadingAnswer = false);
       _showToast("Failed to load answer.");
     }
+  }
+
+  Future<bool?> _showAiConsentDialog() {
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("AI Privacy Disclosure"),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Text(
+                "To generate answers and images, AiClopedia uses third-party AI services (including Google Gemini and OpenAI). "
+                "\n\nBy continuing, this question will be shared with these AI providers to generate a response. "
+                "Please do not share sensitive personal information.",
+                style: TextStyle(fontSize: 14),
+              ),
+              SizedBox(height: 10),
+              Text(
+                "For more details, please review our Privacy Policy.",
+                style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text("Decline"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool('ai_consent', true);
+                if (context.mounted) Navigator.of(context).pop(true);
+              },
+              child: const Text("I Understand & Agree"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
 
@@ -237,11 +291,36 @@ class _QuestionDetailsState extends State<QuestionDetails> {
     setState(() => _isLoadingImage = true);
 
     try {
+      final user = await firebaseServices.getUserInfo();
+      const int imageCreditCost = 20; // Images are more expensive
+
+      if (!user.isPremium) {
+        if (user.credits < imageCreditCost) {
+          _showPaywall(user);
+          if (mounted) setState(() => _isLoadingImage = false);
+          return;
+        }
+      }
+
+      final prefs = await SharedPreferences.getInstance();
+      bool hasConsent = prefs.getBool('ai_consent') ?? false;
+
+      if (!hasConsent) {
+        bool? agreed = await _showAiConsentDialog();
+        if (agreed != true) {
+          if (mounted) setState(() => _isLoadingImage = false);
+          return;
+        }
+      }
 
       final url =
       await ImageEngine.instance.generate(widget.question.question);
 
       if (!mounted) return;
+
+      if (!user.isPremium) {
+        await firebaseServices.updateUserCredits(user.userId, -imageCreditCost);
+      }
 
       setState(() {
         _imageUrl = url;
@@ -254,15 +333,28 @@ class _QuestionDetailsState extends State<QuestionDetails> {
       );
 
     } catch (e) {
-
-      _showToast("Image generation failed.");
-
+      if (mounted) _showToast("Image generation failed.");
     } finally {
-
       if (mounted) {
         setState(() => _isLoadingImage = false);
       }
     }
+  }
+
+  void _showPaywall(UserModel user) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return PaywallOverlay(
+          user: user,
+          cost: 20, // Match imageCreditCost
+          onUnlock: () {
+            Navigator.of(context).pop();
+          },
+        );
+      },
+    );
   }
 
 

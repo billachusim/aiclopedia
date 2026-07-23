@@ -9,14 +9,19 @@ import 'models/userModel.dart';
 class PaywallOverlay extends StatelessWidget {
   final UserModel user;
   final VoidCallback onUnlock;
+  final int cost;
 
-  const PaywallOverlay({super.key, required this.user, required this.onUnlock});
+  const PaywallOverlay({
+    super.key,
+    required this.user,
+    required this.onUnlock,
+    this.cost = 50,
+  });
 
   @override
   Widget build(BuildContext context) {
     final textTheme = GoogleFonts.interTextTheme();
     final db = FirebaseServices();
-    const cost = 50;
 
     return BackdropFilter(
       filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
@@ -89,9 +94,9 @@ class PaywallOverlay extends StatelessWidget {
                               borderRadius: BorderRadius.circular(14),
                             ),
                           ),
-                          child: const Text(
+                          child: Text(
                             "Unlock AI — $cost Credits",
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ),
                       ),

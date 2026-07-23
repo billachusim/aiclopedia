@@ -6,6 +6,9 @@ import 'package:AiClopedia/widgets/bottom_nav.dart';
 import 'login/login.dart';
 
 class SplashPage extends StatefulWidget {
+  const SplashPage({super.key});
+
+  @override
   _SplashPageState createState() => _SplashPageState();
 }
 

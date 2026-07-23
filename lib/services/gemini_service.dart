@@ -7,7 +7,7 @@ class GeminiService {
   static const _apiKey = 'AIzaSyDVrKrbOSUQJ8zv81ZaeXus4wwSviRpb-I';
 
   static final GenerativeModel _model = GenerativeModel(
-    model: 'gemini-flash-latest',
+    model: 'gemini-1.5-flash',
     apiKey: _apiKey,
   );
 

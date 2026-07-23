@@ -31,6 +31,18 @@ class _SettingsPageState extends State<SettingsPage> {
     _firebaseServices.signOut(context);
   }
 
+  void _launchUrl(String url) async {
+    final Uri uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open the link.')),
+      );
+    }
+  }
+
   void _confirmAndDeleteAccount() {
     // Ensure there is a current user
     if (currentUser == null) {
@@ -89,19 +101,21 @@ class _SettingsPageState extends State<SettingsPage> {
             title: const Text('Delete Account', style: TextStyle(color: Colors.red)),
             onTap: _confirmAndDeleteAccount,
           ),
-          Padding(
-            padding: const EdgeInsets.only(top: 8.0, left: 16.0, right: 16.0),
-            child: RichText(
-              text: TextSpan(
-                text: 'Review and confirm data deletion.',
-                style: const TextStyle(
-                  color: Colors.blue,
-                  decoration: TextDecoration.underline,
-                ),
-                recognizer: TapGestureRecognizer()
-                  ..onTap = _launchDeletionPolicy,
-              ),
-            ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.privacy_tip_outlined),
+            title: const Text('Privacy Policy'),
+            onTap: () => _launchUrl("https://sites.google.com/view/claire-diary/ai-clopedia-privacy-policy"),
+          ),
+          ListTile(
+            leading: const Icon(Icons.description_outlined),
+            title: const Text('Terms of Use (EULA)'),
+            onTap: () => _launchUrl("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"),
+          ),
+          ListTile(
+            leading: const Icon(Icons.help_outline),
+            title: const Text('Support'),
+            onTap: () => _launchUrl("https://sites.google.com/view/claire-diary/support"), // Update with real support link if available
           ),
         ],
       ),

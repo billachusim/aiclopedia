@@ -10,6 +10,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:AiClopedia/screens/all_activities.dart';
 import 'package:AiClopedia/screens/question_details.dart';
@@ -61,8 +62,19 @@ class _HomepageState extends ScrollablePageState<Homepage> {
   }
 
   void _initializeHomepage() async {
-    await AppTrackingTransparency.requestTrackingAuthorization();
-    //_createInterstitialAd();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        final status = await AppTrackingTransparency.trackingAuthorizationStatus;
+        if (status == TrackingStatus.notDetermined) {
+          // Wait a bit to ensure the UI is fully loaded before showing the ATT dialog
+          await Future.delayed(const Duration(milliseconds: 1500));
+          await AppTrackingTransparency.requestTrackingAuthorization();
+        }
+      } catch (e) {
+        log("Error requesting ATT: $e");
+      }
+    });
+
     if (currentUser != null) {
       getUser();
       // --- ADDED: Initialize and listen for refreshes ---
@@ -227,12 +239,66 @@ class _HomepageState extends ScrollablePageState<Homepage> {
 
 
 
-  void _onAskAiPressed() {
+  void _onAskAiPressed() async {
     if (currentUser == null) {
       Navigator.push(context, MaterialPageRoute(builder: (context) => LoginPage()));
+      return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    bool hasConsent = prefs.getBool('ai_consent') ?? false;
+
+    if (!hasConsent && mounted) {
+      _showAiConsentDialog();
     } else {
       Navigator.push(context, MaterialPageRoute(builder: (context) => const ChatScreen()));
     }
+  }
+
+  void _showAiConsentDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("AI Privacy Disclosure"),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Text(
+                "To provide intelligent responses and creative content, AiClopedia uses third-party AI services (including Google Gemini and OpenAI). "
+                "\n\nBy continuing, your questions and prompts will be shared with these AI providers to generate answers and images. "
+                "Please do not share sensitive personal information.",
+                style: TextStyle(fontSize: 14),
+              ),
+              SizedBox(height: 10),
+              Text(
+                "For more details, please review our Privacy Policy.",
+                style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("Decline"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool('ai_consent', true);
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const ChatScreen()));
+                }
+              },
+              child: const Text("I Understand & Agree"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _onQuestionTapped(Question question) {

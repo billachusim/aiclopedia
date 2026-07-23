@@ -76,6 +76,9 @@ dependencies {
     implementation("com.google.android.gms:play-services-ads:24.8.0")
     implementation(platform("com.google.firebase:firebase-bom:34.6.0"))
     implementation("com.google.firebase:firebase-analytics")
+    // Force Google Play Billing Library to version 8.0.0 or later to satisfy Google Play requirements
+    implementation("com.android.billingclient:billing:9.1.0")
+    implementation("com.android.billingclient:billing-ktx:9.1.0")
 }
 
 flutter {

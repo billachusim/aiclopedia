@@ -15,8 +15,9 @@ class ImageRepository {
         "Content-Type": "application/json",
       },
       body: jsonEncode({
-        "model": "gpt-image-1",
+        "model": "dall-e-3",
         "prompt": prompt,
+        "n": 1,
         "size": "1024x1024"
       }),
     )

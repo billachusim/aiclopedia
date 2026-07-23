@@ -1,4 +1,5 @@
 import '../../services/firebaseServices.dart';
+import 'ai_service.dart';
 
 class AnswerEngine {
   AnswerEngine._();
@@ -34,10 +35,9 @@ class AnswerEngine {
     return generated;
   }
 
-  /// Replace later with Gemini / GPT
   Future<String> _generateAnswer(String question) async {
-    await Future.delayed(const Duration(seconds: 2));
-
-    return "AI Answer for: $question";
+    final chatModels = await AIService.sendMessage(message: question);
+    // chatModels[0].msg will contain the response or an error message
+    return chatModels.first.msg;
   }
 }

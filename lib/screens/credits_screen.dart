@@ -351,6 +351,14 @@ class _CreditsScreenState extends State<CreditsScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 16),
+          TextButton(
+            onPressed: () => iapController.restorePurchases(),
+            child: const Text(
+              "Restore Purchases",
+              style: TextStyle(color: Colors.white70, fontSize: 12),
+            ),
+          ),
         ],
       ),
     );

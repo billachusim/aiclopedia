@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:AiClopedia/screens/splash_screen.dart';
 import 'package:AiClopedia/services/ad_state.dart';
+import 'package:get/get.dart';
 import 'app_theme.dart';
 import 'providers/chats_provider.dart';
 
@@ -42,7 +43,7 @@ class MyApp extends StatelessWidget {
           create: (_) => ChatProvider(),
         ),
       ],
-      child: MaterialApp(
+      child: GetMaterialApp(
         title: 'AiClopedia',
         debugShowCheckedModeBanner: false,
         // Set the light and dark themes
@@ -50,7 +51,7 @@ class MyApp extends StatelessWidget {
         darkTheme: AppTheme.darkTheme,
         // This will automatically switch between light and dark based on system settings
         themeMode: ThemeMode.system,
-        home: SplashPage(),
+        home: const SplashPage(),
       ),
     );
   }

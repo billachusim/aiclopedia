@@ -8,6 +8,7 @@ import 'package:AiClopedia/widgets/chat_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants/scrollable_page.dart';
 import '../models/userModel.dart';
@@ -43,6 +44,63 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
     focusNode = FocusNode();
     _createInterstitialAd();
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAiConsent();
+    });
+  }
+
+  Future<void> _checkAiConsent() async {
+    final prefs = await SharedPreferences.getInstance();
+    bool hasConsent = prefs.getBool('ai_consent') ?? false;
+    if (!hasConsent && mounted) {
+      _showAiConsentDialog();
+    }
+  }
+
+  void _showAiConsentDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("AI Privacy Disclosure"),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "To provide intelligent responses, AiClopedia uses third-party AI services (including Google Gemini). "
+                "\n\nBy continuing, your messages will be shared with these AI providers to generate a response. "
+                "Please do not share sensitive personal information.",
+                style: TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                "For more details, please review our Privacy Policy.",
+                style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+                Navigator.of(context).pop(); // Go back from ChatScreen
+              },
+              child: const Text("Decline"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool('ai_consent', true);
+                if (context.mounted) Navigator.of(context).pop();
+              },
+              child: const Text("I Understand & Agree"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   // --- UNCOMMENTED and CORRECTED ---
@@ -247,12 +305,14 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
     try {
       final user = await firebaseServices.getUserInfo();
 
-      if (user.credits < creditCost) {
-        _showPaywall(user);
-        return;
+      if (!user.isPremium) {
+        if (user.credits < creditCost) {
+          _showPaywall(user);
+          return;
+        }
+        await firebaseServices.updateUserCredits(user.userId, -creditCost);
       }
 
-      await firebaseServices.updateUserCredits(user.userId, -creditCost);
       await firebaseServices.saveQuestion(user, question);
       await sendMessageFCT(chatProvider: chatProvider);
     } catch (e) {
@@ -279,6 +339,7 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
       builder: (BuildContext context) {
         return PaywallOverlay(
           user: user,
+          cost: 5, // Match creditCost
           onUnlock: () {
             Navigator.of(context).pop();
           },
