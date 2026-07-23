@@ -2,7 +2,7 @@
   "project_info": {
     "project_number": "96385477704",
     "project_id": "chat-gpt-for-students",
-    "storage_bucket": "chat-gpt-for-students.appspot.com"
+    "storage_bucket": "chat-gpt-for-students.firebasestorage.app"
   },
   "client": [
     {
@@ -14,7 +14,23 @@
       },
       "oauth_client": [
         {
-          "client_id": "96385477704-re83cm9vsnl66mit8oi5lc7mtrugr190.apps.googleusercontent.com",
+          "client_id": "96385477704-acin3e0ki54dalcq98jl5il5eo3u7ung.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.socialfaculty.AiClopedia",
+            "certificate_hash": "347611e4f0dea707cc978dbf8aaa0f02a89041d9"
+          }
+        },
+        {
+          "client_id": "96385477704-fil64o641in67ub01h9knq3lplbm0r8d.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.socialfaculty.AiClopedia",
+            "certificate_hash": "e18899c9fdb5b775868df1f38a7efdf21014a403"
+          }
+        },
+        {
+          "client_id": "96385477704-kcitk9f693taaqugutkeffijp2r7qfc0.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
@@ -27,12 +43,21 @@
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "96385477704-re83cm9vsnl66mit8oi5lc7mtrugr190.apps.googleusercontent.com",
+              "client_id": "96385477704-kcitk9f693taaqugutkeffijp2r7qfc0.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "96385477704-5le0mf3rjs2a7j924ivs3sgq62vl69od.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.socialfaculty.AiClopedia",
+                "app_store_id": "6447000971"
+              }
             }
           ]
         }
-      }
+      },
+      "admob_app_id": "ca-app-pub-2404156870680632~3412670740"
     }
   ],
   "configuration_version": "1"
