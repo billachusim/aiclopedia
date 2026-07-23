@@ -243,7 +243,7 @@ class FirebaseServices extends ChangeNotifier {
 
     if (userGaveConsent == true) {
       // User agreed, update their profile
-      await _updateConsentStatus(user.userId, true);
+      await updateConsentStatus(user.userId, true);
       return true;
     } else {
       // User declined
