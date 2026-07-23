@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:AiClopedia/widgets/bottom_nav.dart';
 
-import 'login/login.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});

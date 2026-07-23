@@ -15,6 +15,7 @@ import 'providers/chats_provider.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
+
   final initFuture = MobileAds.instance.initialize();
   MobileAds.instance.updateRequestConfiguration(
     RequestConfiguration(testDeviceIds: ['51F4CA28BB7EDD1F5E61C5F0F8EFFF00']),

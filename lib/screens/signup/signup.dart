@@ -57,6 +57,28 @@ class SignupPageState extends State<SignupPage> {
     }
   }
 
+  // --- ADDED: Method to handle Google login logic ---
+  void _handleGoogleLogin() async {
+    setState(() => _isSigningIn = true);
+
+    bool success = await _firebaseServices.signInWithGoogle(context);
+
+    if (!mounted) return;
+
+    setState(() => _isSigningIn = false);
+
+    if (success) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => BottomNavBar()),
+        (Route<dynamic> route) => false,
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Google Sign-In failed or was cancelled.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -154,6 +176,41 @@ class SignupPageState extends State<SignupPage> {
                   text: 'Register',
                   press: _handleRegistration, // <-- MODIFIED: Extracted to a method
                 ),
+                const SizedBox(height: 20.0),
+                const Row(
+                  children: [
+                    Expanded(child: Divider()),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 10),
+                      child: Text("OR"),
+                    ),
+                    Expanded(child: Divider()),
+                  ],
+                ),
+                const SizedBox(height: 20.0),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: OutlinedButton.icon(
+                    onPressed: _isSigningIn ? null : _handleGoogleLogin,
+                    icon: Image.asset("assets/images/google.png", height: 24),
+                    label: Text(
+                      "Continue with Google",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      side: BorderSide(color: textColor.withValues(alpha: 0.5)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20.0),
               ],
             ),
           ),

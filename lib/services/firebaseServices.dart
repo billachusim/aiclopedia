@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
@@ -23,11 +24,64 @@ class FirebaseServices extends ChangeNotifier {
   String? _usersID;
 
 
-//used for generating random id for each session
+  //used for generating random id for each session
   var uuid = Uuid();
 
   //UserModel? user;
 
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    serverClientId: '96385477704-re83cm9vsnl66mit8oi5lc7mtrugr190.apps.googleusercontent.com',
+  );
+
+  /// Google Sign In
+  Future<bool> signInWithGoogle(BuildContext context) async {
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) return false;
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final UserCredential userCredential =
+          await FirebaseAuth.instance.signInWithCredential(credential);
+      final User? user = userCredential.user;
+
+      if (user != null) {
+        // Check if user document already exists
+        final doc = await _firebaseFirestore.collection("users").doc(user.uid).get();
+        if (!doc.exists) {
+          // Create new user document
+          await _firebaseFirestore.collection("users").doc(user.uid).set({
+            "userId": user.uid,
+            "email": user.email,
+            "nickname": user.displayName ?? "User",
+            "nameOfSchool": "Not specified",
+            "password": "LOGGED_WITH_GOOGLE",
+            "timeRegistered": FieldValue.serverTimestamp(),
+            "timeLastUnlocked": FieldValue.serverTimestamp(),
+            "userType": "REGULAR",
+            "credits": 50,
+            "isPremium": false,
+            "premiumExpiryDate": null,
+            "blockedUsers": [],
+            "hasConsentedToDataSharing": false,
+          });
+          logger.d('Created new user document for Google user ${user.uid}');
+        }
+
+        setUsersId(user.uid);
+        currentUser = user;
+        return true;
+      }
+      return false;
+    } catch (e) {
+      logger.e('Error during Google Sign In: $e');
+      return false;
+    }
+  }
 
   /// SignUp user
   Future<bool> register(
