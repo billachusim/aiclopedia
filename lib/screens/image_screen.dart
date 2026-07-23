@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/scrollable_page.dart';
 import '../services/ad_state.dart';
 import '../services/firebaseServices.dart';
@@ -276,9 +277,53 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
       builder: (BuildContext context) {
         return PaywallOverlay(
           user: user,
+          cost: 20, // Match creditCost
           onUnlock: () {
             Navigator.of(context).pop();
           },
+        );
+      },
+    );
+  }
+
+  Future<bool?> _showAiConsentDialog() {
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("AI Privacy Disclosure"),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Text(
+                "To provide creative content, AiClopedia uses third-party AI services (OpenAI). "
+                "\n\nBy continuing, your prompt will be shared with these AI providers to generate an image. "
+                "Please do not share sensitive personal information.",
+                style: TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                "For more details, please review our Privacy Policy.",
+                style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text("Decline"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool('ai_consent', true);
+                if (context.mounted) Navigator.of(context).pop(true);
+              },
+              child: const Text("I Understand & Agree"),
+            ),
+          ],
         );
       },
     );
@@ -298,30 +343,42 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
     focusNode.unfocus();
     const int creditCost = 20;
 
-    setState(() {
-      _isGenerating = true;
-      isTyping = true;
-      generatedImageUrl = '';
-    });
-
     try {
       final user = await firebaseServices.getUserInfo();
 
-      if (user.credits < creditCost) {
-        _showPaywall(user);
-        return;
+      if (!user.isPremium) {
+        if (user.credits < creditCost) {
+          _showPaywall(user);
+          return;
+        }
       }
 
-      if (mounted) {
+      final prefs = await SharedPreferences.getInstance();
+      bool hasConsent = prefs.getBool('ai_consent') ?? false;
+
+      if (!hasConsent) {
+        bool? agreed = await _showAiConsentDialog();
+        if (agreed != true) return;
+      }
+
+      setState(() {
+        _isGenerating = true;
+        isTyping = true;
+        generatedImageUrl = '';
+      });
+
+      if (mounted && !user.isPremium) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Deducting $creditCost credits and generating image...')),
         );
       }
 
-      await firebaseServices.updateUserCredits(user.userId, -creditCost);
-
       final prompt = textEditingController.text.trim();
       final url = await ImageEngine.instance.generate(prompt);
+
+      if (!user.isPremium) {
+        await firebaseServices.updateUserCredits(user.userId, -creditCost);
+      }
 
       if (mounted) {
         setState(() {
@@ -331,6 +388,12 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
 
       if (generatedImageUrl.isNotEmpty) {
         await firebaseServices.saveQuestion(user, prompt);
+        // Important: Update the saved question with the image URL
+        // We'll need the questionId that was generated in saveQuestion
+        final String? lastQuestionId = (await SharedPreferences.getInstance()).getString('questionId');
+        if (lastQuestionId != null) {
+          await firebaseServices.saveImageUrl(lastQuestionId, url);
+        }
       }
     } catch (e) {
       if (mounted) {

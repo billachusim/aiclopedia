@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:AiClopedia/screens/splash_screen.dart';
 import 'package:AiClopedia/services/ad_state.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:get/get.dart';
 import 'app_theme.dart';
 import 'providers/chats_provider.dart';
@@ -13,16 +14,20 @@ import 'providers/chats_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
   final initFuture = MobileAds.instance.initialize();
   MobileAds.instance.updateRequestConfiguration(
     RequestConfiguration(testDeviceIds: ['51F4CA28BB7EDD1F5E61C5F0F8EFFF00']),
   );
   final adState = AdState(initFuture);
   await Firebase.initializeApp();
-  await FirebaseAppCheck.instance.activate(
-    providerAndroid: kDebugMode ? const AndroidDebugProvider() : const AndroidPlayIntegrityProvider(),
-    providerApple: kDebugMode ? const AppleDebugProvider() : const AppleAppAttestProvider(),
-  );
+  
+  if (!kDebugMode) {
+    await FirebaseAppCheck.instance.activate(
+      providerAndroid: const AndroidPlayIntegrityProvider(),
+      providerApple: const AppleAppAttestProvider(),
+    );
+  }
 
   runApp(
     Provider.value(

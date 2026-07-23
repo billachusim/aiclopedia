@@ -1,21 +1,22 @@
 import 'dart:async';
 import 'dart:developer';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'ai_exceptions.dart';
 
 class GeminiService {
-  static const _apiKey = 'AIzaSyDVrKrbOSUQJ8zv81ZaeXus4wwSviRpb-I';
-
-  static final GenerativeModel _model = GenerativeModel(
-    model: 'gemini-1.5-flash',
-    apiKey: _apiKey,
-  );
+  static String get _apiKey => dotenv.env['GEMINI_API_KEY'] ?? '';
 
   static Future<String> sendMessage(String message) async {
     try {
       log("GEMINI → $message");
 
-      final response = await _model
+      final model = GenerativeModel(
+        model: 'gemini-1.5-flash',
+        apiKey: _apiKey,
+      );
+
+      final response = await model
           .generateContent([Content.text(message)])
           .timeout(const Duration(seconds: 25));
 

@@ -93,6 +93,13 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
               onPressed: () async {
                 final prefs = await SharedPreferences.getInstance();
                 await prefs.setBool('ai_consent', true);
+                
+                // Sync with Firebase
+                final user = FirebaseAuth.instance.currentUser;
+                if (user != null) {
+                  await FirebaseServices().updateConsentStatus(user.uid, true);
+                }
+
                 if (context.mounted) Navigator.of(context).pop();
               },
               child: const Text("I Understand & Agree"),

@@ -1,9 +1,10 @@
 import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 class ImageService {
 
-  static const String _apiKey = 'YOUR_KEY';
+  static String get _apiKey => dotenv.env['OPENAI_API_KEY'] ?? '';
 
   static const _endpoint =
       'https://api.openai.com/v1/images/generations';

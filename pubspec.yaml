@@ -47,6 +47,7 @@ dependencies:
   in_app_purchase_storekit: ^0.4.7
   get: ^4.7.3
   firebase_app_check: ^0.4.1+6
+  flutter_dotenv: ^5.1.0
 
 
 dev_dependencies:
@@ -77,4 +78,5 @@ flutter:
 
   assets:
     - assets/images/
+    - .env
 

@@ -179,7 +179,7 @@ class FirebaseServices extends ChangeNotifier {
   }
 
   /// START: DATA SHARING CONSENT
-  Future<void> _updateConsentStatus(String userId, bool consent) async {
+  Future<void> updateConsentStatus(String userId, bool consent) async {
     try {
       await _firebaseFirestore
           .collection('users')

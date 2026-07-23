@@ -1,9 +1,10 @@
 import 'dart:developer';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import '../models/chat_model.dart';
 
 class ApiService {
-  static const String _apiKey = 'AIzaSyAtMEiuNYGVQta2Zw7G_Ci8YfdXbr0cm1M';
+  static String get _apiKey => dotenv.env['GEMINI_API_KEY'] ?? '';
 
   static Future<List<ChatModel>> sendMessage({
     required String message,
@@ -12,7 +13,7 @@ class ApiService {
       log("Sending message to Gemini: $message");
 
       final model = GenerativeModel(
-        model: 'gemini-1.5-flash-latest',
+        model: 'gemini-1.5-flash',
         apiKey: _apiKey,
       );
 

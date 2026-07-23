@@ -62,18 +62,12 @@ class _QuestionDetailsState extends State<QuestionDetails> {
   }
 
   void _initializeContent() {
-
     _answer = widget.question.answer;
     _imageUrl = widget.question.imageUrl;
     _showImage = _imageUrl.isNotEmpty;
 
     if (_answer.isEmpty) {
       _getAnswer();
-    }
-
-    // preload image cache silently
-    if (_imageUrl.isNotEmpty) {
-      ImageEngine.instance.generate(widget.question.question);
     }
   }
 
@@ -269,6 +263,13 @@ class _QuestionDetailsState extends State<QuestionDetails> {
               onPressed: () async {
                 final prefs = await SharedPreferences.getInstance();
                 await prefs.setBool('ai_consent', true);
+                
+                // Sync with Firebase
+                final user = FirebaseAuth.instance.currentUser;
+                if (user != null) {
+                  await FirebaseServices().updateConsentStatus(user.uid, true);
+                }
+
                 if (context.mounted) Navigator.of(context).pop(true);
               },
               child: const Text("I Understand & Agree"),
@@ -327,7 +328,7 @@ class _QuestionDetailsState extends State<QuestionDetails> {
         _showImage = true;
       });
 
-      firebaseServices.saveImageUrl(
+      await firebaseServices.saveImageUrl(
         widget.question.questionId,
         url,
       );
@@ -440,35 +441,39 @@ class _QuestionDetailsState extends State<QuestionDetails> {
               ),
             ),
             const SizedBox(height: 24.0),
-            Center(
-              child: ElevatedButton.icon(
-                icon: _isLoadingImage
-                    ? const SizedBox.shrink()
-                    : Icon(_showImage && _imageUrl.isNotEmpty ? Icons.visibility_off_outlined : Icons.image_outlined),
-                label: _isLoadingImage
-                    ? const SpinKitThreeBounce(color: Colors.white, size: 18)
-                    : Text(_imageUrl.isNotEmpty ? (_showImage ? 'Hide Image' : 'Show Image') : 'Generate Image'),
-                onPressed: _isLoadingImage ? null : _handleImageGeneration,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.accentPink,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            if (_showImage || _imageUrl.isEmpty)
+              Center(
+                child: ElevatedButton.icon(
+                  icon: _isLoadingImage
+                      ? const SizedBox.shrink()
+                      : Icon(_showImage && _imageUrl.isNotEmpty
+                          ? Icons.visibility_off_outlined
+                          : Icons.image_outlined),
+                  label: _isLoadingImage
+                      ? const SpinKitThreeBounce(color: Colors.white, size: 18)
+                      : Text(_imageUrl.isNotEmpty
+                          ? (_showImage ? 'Hide Image' : 'Show Image')
+                          : 'Generate AI Image'),
+                  onPressed: _isLoadingImage ? null : _handleImageGeneration,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.accentPink,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            if (_showImage && _imageUrl.isNotEmpty)
+            if (_showImage && _imageUrl.isNotEmpty) ...[
+              const SizedBox(height: 16),
               ClipRRect(
                 borderRadius: BorderRadius.circular(16),
                 child: CachedNetworkImage(
                   imageUrl: _imageUrl,
                   fit: BoxFit.cover,
-                  placeholder: (_, __) =>
-                      _buildLoadingIndicator(theme),
-                  errorWidget: (_, __, ___) =>
-                  const Text('Could not load image.'),
+                  placeholder: (_, __) => _buildLoadingIndicator(theme),
+                  errorWidget: (_, __, ___) => const Text('Could not load image.'),
                 ),
               ),
+            ],
             const Divider(height: 48),
             _buildMetadata(context, question),
             if (questionDetailsBottomBanner != null)
