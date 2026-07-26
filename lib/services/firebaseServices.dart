@@ -17,11 +17,10 @@ class FirebaseServices extends ChangeNotifier {
   /// create instance of Firestore
   FirebaseFirestore _firebaseFirestore = FirebaseFirestore.instance;
 
-  User? currentUser = FirebaseAuth.instance.currentUser;
+  User? get currentUser => FirebaseAuth.instance.currentUser;
   final String usersKey = 'user';
   final String alterEgoKey = 'alterEgo';
   final String alterEgoAccessCodeKey = 'alterEgoAccessCodeKey';
-  String? _usersID;
 
 
   //used for generating random id for each session
@@ -73,7 +72,6 @@ class FirebaseServices extends ChangeNotifier {
         }
 
         setUsersId(user.uid);
-        currentUser = user;
         return true;
       }
       return false;
@@ -116,7 +114,7 @@ class FirebaseServices extends ChangeNotifier {
       logger.d('Successfully created user document for ${user.uid}');
 
       // 3. Cache the user ID locally and sign them in
-      setUsersId(user.uid);
+      await setUsersId(user.uid);
 
       return true;
 
@@ -137,25 +135,19 @@ class FirebaseServices extends ChangeNotifier {
   Future<bool> signIn(
       BuildContext context, String email, String password) async {
     try {
-      await FirebaseAuth.instance
-          .signInWithEmailAndPassword(email: email, password: password)
-          .then((value) => {
-        setUsersId(value.user!.uid),
-        //showToast("Showing user UID ${value.user!.uid}")
-      });
-      //Fluttertoast.showToast(msg: 'You can continue shopping');
-      // Navigator.of(context).pop(); // Let the caller handle navigation
-      return true;
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'wrong-password') {
-        //Fluttertoast.showToast(msg: 'The ego code is invalid or the ego does not have an ego code.');
-      } else if (e.code == 'wrong-email') {
-        //Fluttertoast.showToast(msg:'The email is invalid or the user does not have an email.');
+      final value = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password);
+      
+      if (value.user != null) {
+        await setUsersId(value.user!.uid);
+        return true;
       }
-      //Fluttertoast.showToast(msg: 'error');
+      return false;
+    } on FirebaseAuthException catch (e) {
+      logger.e("SignIn Error: ${e.code} - ${e.message}");
       return false;
     } catch (e) {
-      print(e);
+      logger.e("SignIn Unknown Error: $e");
       return false;
     }
   }
@@ -165,8 +157,8 @@ class FirebaseServices extends ChangeNotifier {
   /// if the use is not signed in
   /// then request them to sign in
   Future<bool> isUserSignIn(BuildContext context) async {
-    _usersID = await getUsersId();
-    if (_usersID == null || _usersID!.isEmpty) {
+    final uid = await getUsersId();
+    if (uid == null || uid.isEmpty) {
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -178,9 +170,9 @@ class FirebaseServices extends ChangeNotifier {
 
 
   /// cache user id
-  void setUsersId(String id) async {
+  Future<void> setUsersId(String id) async {
     prefs = await SharedPreferences.getInstance();
-    prefs!.setString(usersKey, id);
+    await prefs!.setString(usersKey, id);
     notifyListeners();
   }
 
@@ -213,14 +205,21 @@ class FirebaseServices extends ChangeNotifier {
   /// Get user info
 
   Future<UserModel> getUserInfo() async {
-    _usersID = currentUser?.uid;
+    final uid = currentUser?.uid;
+    if (uid == null) {
+      throw Exception("No user currently logged in.");
+    }
+    
     DocumentSnapshot response = await _firebaseFirestore
         .collection("users")
-        .doc(_usersID)
+        .doc(uid)
         .get();
 
-    var user = UserModel.fromJson(response.data() as Map<String, dynamic>);
-    return user;
+    if (!response.exists || response.data() == null) {
+       throw Exception("User data not found in Firestore.");
+    }
+
+    return UserModel.fromJson(response.data() as Map<String, dynamic>);
   }
 
   // Get a user document

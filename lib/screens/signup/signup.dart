@@ -244,10 +244,10 @@ class SignupPageState extends State<SignupPage> {
 
     bool success = await _firebaseServices.register(
       context,
-      _emailController.text,
-      _passwordController.text,
-      _nicknameController.text,
-      _nameOfSchoolController.text,
+      _emailController.text.trim(),
+      _passwordController.text, // Do NOT trim passwords
+      _nicknameController.text.trim(),
+      _nameOfSchoolController.text.trim(),
     );
 
     if (!mounted) return;

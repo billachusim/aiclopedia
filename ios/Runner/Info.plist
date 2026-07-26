@@ -29,7 +29,7 @@
 		<key>ITSAppUsesNonExemptEncryption</key>
 		<false/>
 		<key>NSUserTrackingUsageDescription</key>
-		<string>This identifier will be used to deliver personalized ads to you.</string>
+		<string>We use your data to show you relevant advertisements from our partners, such as educational apps or book recommendations. This tracking helps us keep the core AI features of AiClopedia free for all students and researchers.</string>
 		<key>SKAdNetworkItems</key>
 		<array>
 			<dict>

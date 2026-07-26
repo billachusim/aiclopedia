@@ -60,8 +60,8 @@ class LoginPageState extends State<LoginPage> {
 
     bool success = await _firebaseServices.signIn(
       context,
-      _emailController.text,
-      _passwordController.text,
+      _emailController.text.trim(),
+      _passwordController.text, // Do NOT trim passwords
     );
 
     if (!mounted) return;
@@ -70,12 +70,15 @@ class LoginPageState extends State<LoginPage> {
 
     if (success) {
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => BottomNavBar()),
+        MaterialPageRoute(builder: (context) => const BottomNavBar()),
             (Route<dynamic> route) => false,
       );
     } else {
+      // Logic for failed login is handled by the result.
+      // FirebaseServices should ideally throw exceptions or return messages.
+      // For now, let's just show a general error.
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Login failed. Please check your credentials.')),
+        const SnackBar(content: Text('Login failed. Please check your email and password.')),
       );
     }
   }
