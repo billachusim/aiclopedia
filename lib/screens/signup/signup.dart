@@ -1,4 +1,6 @@
 import 'package:AiClopedia/widgets/bottom_nav.dart';
+import 'dart:io';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -75,6 +77,28 @@ class SignupPageState extends State<SignupPage> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Google Sign-In failed or was cancelled.')),
+      );
+    }
+  }
+
+  // --- ADDED: Method to handle Apple login logic ---
+  void _handleAppleLogin() async {
+    setState(() => _isSigningIn = true);
+
+    bool success = await _firebaseServices.signInWithApple(context);
+
+    if (!mounted) return;
+
+    setState(() => _isSigningIn = false);
+
+    if (success) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => BottomNavBar()),
+        (Route<dynamic> route) => false,
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Apple Sign-In failed or was cancelled.')),
       );
     }
   }
@@ -210,6 +234,12 @@ class SignupPageState extends State<SignupPage> {
                     ),
                   ),
                 ),
+                if (Platform.isIOS) ...[
+                  const SizedBox(height: 20.0),
+                  SignInWithAppleButton(
+                    onPressed: _isSigningIn ? () {} : _handleAppleLogin,
+                  ),
+                ],
                 const SizedBox(height: 20.0),
               ],
             ),

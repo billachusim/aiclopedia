@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
@@ -77,6 +78,58 @@ class FirebaseServices extends ChangeNotifier {
       return false;
     } catch (e) {
       logger.e('Error during Google Sign In: $e');
+      return false;
+    }
+  }
+
+  /// Apple Sign In
+  Future<bool> signInWithApple(BuildContext context) async {
+    try {
+      final appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+
+      final OAuthCredential credential = OAuthProvider("apple.com").credential(
+        idToken: appleCredential.identityToken,
+        rawNonce: null, // You can generate a nonce if needed for extra security
+      );
+
+      final UserCredential userCredential =
+          await FirebaseAuth.instance.signInWithCredential(credential);
+      final User? user = userCredential.user;
+
+      if (user != null) {
+        // Check if user document already exists
+        final doc = await _firebaseFirestore.collection("users").doc(user.uid).get();
+        if (!doc.exists) {
+          // Create new user document
+          await _firebaseFirestore.collection("users").doc(user.uid).set({
+            "userId": user.uid,
+            "email": user.email,
+            "nickname": user.displayName ?? (appleCredential.givenName ?? "User"),
+            "nameOfSchool": "Not specified",
+            "password": "LOGGED_WITH_APPLE",
+            "timeRegistered": FieldValue.serverTimestamp(),
+            "timeLastUnlocked": FieldValue.serverTimestamp(),
+            "userType": "REGULAR",
+            "credits": 50,
+            "isPremium": false,
+            "premiumExpiryDate": null,
+            "blockedUsers": [],
+            "hasConsentedToDataSharing": false,
+          });
+          logger.d('Created new user document for Apple user ${user.uid}');
+        }
+
+        setUsersId(user.uid);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      logger.e('Error during Apple Sign In: $e');
       return false;
     }
   }
