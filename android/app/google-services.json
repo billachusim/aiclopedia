@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "96385477704-7rs0sik2gbk2938mv7s0gihlih50qsdb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.socialfaculty.AiClopedia",
+            "certificate_hash": "cc71d5660ec275fcbbe54d2e273e2fe5005a21bb"
+          }
+        },
+        {
           "client_id": "96385477704-acin3e0ki54dalcq98jl5il5eo3u7ung.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

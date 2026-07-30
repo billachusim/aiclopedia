@@ -5,6 +5,7 @@ import 'package:AiClopedia/app_state.dart';
 import 'package:AiClopedia/screens/settings_page.dart';
 import 'package:AiClopedia/services/hidden_posts_service.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -25,6 +26,7 @@ import 'package:AiClopedia/screens/login/login.dart';
 import '../app_theme.dart';
 import '../constants/scrollable_page.dart';
 import '../widgets/auto_scroll_container.dart';
+import '../widgets/quick_chat_strips.dart';
 import 'credits_screen.dart';
 
 
@@ -427,23 +429,45 @@ class _HomepageState extends ScrollablePageState<Homepage> {
                             children: [
                               const SizedBox(height: 16),
                               InspirationalQuoteCard(nickname: nickname),
+                              const SizedBox(height: 20),
+                              QuickChatStrips(
+                                onSelect: (prompt) {
+                                  Navigator.push(context, MaterialPageRoute(builder: (context) => ChatScreen(initialPrompt: prompt)));
+                                },
+                              ),
                               const SizedBox(height: 24),
                               Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                                child: ElevatedButton.icon(
-                                  icon: const Icon(Icons.psychology_alt, color: Colors.white),
-                                  label: const Text(
-                                    "Ask AI Anything",
-                                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(20),
+                                    gradient: LinearGradient(
+                                      colors: [AppTheme.accentPink, AppTheme.accentPink.withOpacity(0.8)],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppTheme.accentPink.withOpacity(0.3),
+                                        blurRadius: 12,
+                                        offset: const Offset(0, 6),
+                                      ),
+                                    ],
                                   ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppTheme.accentPink,
-                                    minimumSize: const Size(double.infinity, 56),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                    elevation: 8,
-                                    shadowColor: AppTheme.accentPink.withAlpha(128),
+                                  child: ElevatedButton.icon(
+                                    icon: const Icon(Icons.psychology_alt, color: Colors.white, size: 28),
+                                    label: const Text(
+                                      "Ask AI Anything",
+                                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.transparent,
+                                      shadowColor: Colors.transparent,
+                                      minimumSize: const Size(double.infinity, 64),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                    ),
+                                    onPressed: _onAskAiPressed,
                                   ),
-                                  onPressed: _onAskAiPressed,
                                 ),
                               ),
                               // The space that was above the header is now here
@@ -456,13 +480,20 @@ class _HomepageState extends ScrollablePageState<Homepage> {
                         SliverPersistentHeader(
                           pinned: true,
                           delegate: _SliverHeaderDelegate(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                              decoration: BoxDecoration(
+                                border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.1))),
+                              ),
                               child: Align(
                                 alignment: Alignment.centerLeft,
                                 child: Text(
-                                  "Community Questions:",
-                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 18),
+                                  "Community Feed",
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
                                 ),
                               ),
                             ),

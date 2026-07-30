@@ -1,12 +1,11 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:AiClopedia/services/image_cache.dart';
-import 'image_repository.dart';
 
 class ImageEngine {
   ImageEngine._();
 
   static final instance = ImageEngine._();
 
-  final _repo = ImageRepository();
   final _cache = ImageCacheService();
 
   Future<String> generate(String prompt) async {
@@ -17,12 +16,21 @@ class ImageEngine {
       return cached;
     }
 
-    // 2️⃣ TRY NETWORK (with retry)
+    // 2️⃣ TRY NETWORK (Cloud Function)
     int attempts = 0;
 
-    while (attempts < 3) {
+    while (attempts < 2) {
       try {
-        final url = await _repo.generate(prompt);
+        final HttpsCallable callable = FirebaseFunctions.instance.httpsCallable('generateAIImage');
+        final results = await callable.call(<String, dynamic>{
+          'prompt': prompt,
+        });
+
+        final String? url = results.data['url'];
+
+        if (url == null || url.isEmpty) {
+          throw Exception("No URL returned from AI");
+        }
 
         await _cache.save(prompt, url);
 
@@ -30,7 +38,7 @@ class ImageEngine {
       } catch (e) {
         attempts++;
 
-        if (attempts >= 3) {
+        if (attempts >= 2) {
           rethrow;
         }
 

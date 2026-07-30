@@ -17,7 +17,8 @@ import '../services/ad_state.dart';
 import '../services/firebaseServices.dart';
 
 class ChatScreen extends ScrollablePage {
-  const ChatScreen({super.key});
+  final String? initialPrompt;
+  const ChatScreen({super.key, this.initialPrompt});
 
   @override
   ScrollablePageState<ChatScreen> createState() => _ChatScreenState();
@@ -30,6 +31,7 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
   var currentUser = FirebaseAuth.instance.currentUser;
   bool _isTyping = false;
   bool _isSending = false;
+  bool _hasPerformedSearch = false;
   late TextEditingController textEditingController;
   late ScrollController _listScrollController;
   late FocusNode focusNode;
@@ -41,12 +43,23 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
   void initState() {
     _listScrollController = ScrollController();
     textEditingController = TextEditingController();
+    if (widget.initialPrompt != null) {
+      textEditingController.text = widget.initialPrompt!;
+    }
     focusNode = FocusNode();
     _createInterstitialAd();
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAiConsent();
+      if (widget.initialPrompt != null) {
+        _handleInitialPrompt();
+      }
     });
+  }
+
+  Future<void> _handleInitialPrompt() async {
+    final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+    await _handleSendMessage(chatProvider);
   }
 
   Future<void> _checkAiConsent() async {
@@ -137,7 +150,9 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
 
   @override
   void dispose() {
-    Future.delayed(const Duration(seconds: 2), _showInterstitialAd);
+    if (_hasPerformedSearch) {
+      _showInterstitialAd();
+    }
     _listScrollController.dispose();
     textEditingController.dispose();
     focusNode.dispose();
@@ -312,16 +327,14 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
     try {
       final user = await firebaseServices.getUserInfo();
 
-      if (!user.isPremium) {
-        if (user.credits < creditCost) {
-          _showPaywall(user);
-          return;
-        }
-        await firebaseServices.updateUserCredits(user.userId, -creditCost);
+      if (!user.isPremium && user.credits < creditCost) {
+        _showPaywall(user);
+        return;
       }
 
+      // We'll deduct credits AFTER success in sendMessageFCT to be fair
       await firebaseServices.saveQuestion(user, question);
-      await sendMessageFCT(chatProvider: chatProvider);
+      await sendMessageFCT(chatProvider: chatProvider, user: user, creditCost: creditCost);
     } catch (e) {
       log("FIREBASE ERROR: $e");
       if (mounted) {
@@ -367,7 +380,7 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
     });
   }
 
-  Future<void> sendMessageFCT({required ChatProvider chatProvider}) async {
+  Future<void> sendMessageFCT({required ChatProvider chatProvider, UserModel? user, int? creditCost}) async {
     if (_isTyping) return;
     if (textEditingController.text.trim().isEmpty) return;
 
@@ -384,6 +397,12 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
 
     try {
       await chatProvider.sendMessageAndGetAnswers(msg: msg);
+      _hasPerformedSearch = true;
+      
+      // Success! Now deduct credits if not premium
+      if (user != null && !user.isPremium && creditCost != null) {
+        await firebaseServices.updateUserCredits(user.userId, -creditCost);
+      }
     } catch (error) {
       log("CHAT ERROR: $error");
       ScaffoldMessenger.of(context).showSnackBar(

@@ -1,28 +1,28 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'ai_exceptions.dart';
-import 'gemini_service.dart';
-import 'api_service.dart';
 
 class AIRouter {
-  /// Orchestrates message routing between available AI services.
-  /// Currently tries GeminiService (Primary) and falls back to ApiService.
+  /// Orchestrates message routing via Firebase Cloud Functions for security.
   static Future<String> routeMessage(String message) async {
-    // Attempt 1: GeminiService
     try {
-      return await GeminiService.sendMessage(message);
-    } catch (e) {
-      print("GeminiService failed, attempting fallback to ApiService: $e");
-    }
+      final HttpsCallable callable = FirebaseFunctions.instance.httpsCallable('getAIResponse');
+      final results = await callable.call(<String, dynamic>{
+        'prompt': message,
+      });
 
-    // Attempt 2: ApiService (as fallback)
-    try {
-      final fallbackResponse = await ApiService.sendMessage(message: message);
-      if (fallbackResponse.isNotEmpty) {
-        return fallbackResponse.first.msg;
+      final String? response = results.data['text'];
+      
+      if (response == null || response.isEmpty) {
+        throw AIModelUnavailableException();
       }
-    } catch (e) {
-      print("ApiService also failed: $e");
-    }
 
-    throw AIModelUnavailableException();
+      return response;
+    } on FirebaseFunctionsException catch (e) {
+      print("Cloud Function Error: ${e.code} - ${e.message}");
+      throw AIException(e.message ?? "AI Service Error");
+    } catch (e) {
+      print("Unexpected Error calling Cloud Function: $e");
+      throw AIModelUnavailableException();
+    }
   }
 }

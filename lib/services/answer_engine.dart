@@ -7,6 +7,9 @@ class AnswerEngine {
   static final instance = AnswerEngine._();
 
   final FirebaseServices _firebase = FirebaseServices();
+  
+  // Memory cache to avoid even Firebase reads during the same session
+  final Map<String, String> _memoryCache = {};
 
   /// MASTER RESOLVER
   Future<String> resolve({
@@ -19,18 +22,27 @@ class AnswerEngine {
     if (existingAnswer.isNotEmpty) {
       return existingAnswer;
     }
+    
+    // ✅ 2 - Check memory cache
+    if (_memoryCache.containsKey(questionId)) {
+      return _memoryCache[questionId]!;
+    }
 
-    // ✅ 2 — Check Firebase cache
+    // ✅ 3 — Check Firebase cache
     final cached = await _firebase.getAnswer(questionId);
 
     if (cached != null && cached.isNotEmpty) {
+      _memoryCache[questionId] = cached;
       return cached;
     }
 
-    // ✅ 3 — LAST RESORT → Generate
+    // ✅ 4 — LAST RESORT → Generate
     final generated = await _generateAnswer(question);
 
-    await _firebase.saveAnswer(questionId, generated);
+    if (generated.isNotEmpty && !generated.startsWith('⚠️')) {
+      await _firebase.saveAnswer(questionId, generated);
+      _memoryCache[questionId] = generated;
+    }
 
     return generated;
   }

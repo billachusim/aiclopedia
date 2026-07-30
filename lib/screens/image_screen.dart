@@ -25,6 +25,7 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
   final FirebaseServices firebaseServices = FirebaseServices();
   bool isTyping = false;
   bool _isGenerating = false;
+  bool _hasGeneratedImage = false;
   late TextEditingController textEditingController;
   late ScrollController _scrollController;
   late FocusNode focusNode;
@@ -66,7 +67,9 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
 
   @override
   void dispose() {
-    Future.delayed(const Duration(seconds: 2), _showInterstitialAd);
+    if (_hasGeneratedImage) {
+      _showInterstitialAd();
+    }
     _scrollController.dispose();
     textEditingController.dispose();
     focusNode.dispose();
@@ -383,6 +386,7 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
       if (mounted) {
         setState(() {
           generatedImageUrl = url;
+          _hasGeneratedImage = true;
         });
       }
 

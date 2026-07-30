@@ -1,5 +1,9 @@
+import 'dart:convert';
+import 'dart:math';
+
 import 'package:AiClopedia/screens/login/login.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -32,6 +36,21 @@ class FirebaseServices extends ChangeNotifier {
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     serverClientId: '96385477704-kcitk9f693taaqugutkeffijp2r7qfc0.apps.googleusercontent.com',
   );
+
+  /// Generates a cryptographically secure random nonce, to be included in a
+  /// sign-in request.
+  String _generateNonce([int length = 32]) {
+    const charset = '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
+    final random = Random.secure();
+    return List.generate(length, (_) => charset[random.nextInt(charset.length)]).join();
+  }
+
+  /// Returns the sha256 hash of [rawNonce].
+  String _sha256ofString(String input) {
+    final bytes = utf8.encode(input);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
+  }
 
   /// Google Sign In
   Future<bool> signInWithGoogle(BuildContext context) async {
@@ -85,16 +104,21 @@ class FirebaseServices extends ChangeNotifier {
   /// Apple Sign In
   Future<bool> signInWithApple(BuildContext context) async {
     try {
+      final rawNonce = _generateNonce();
+      final hashedNonce = _sha256ofString(rawNonce);
+
       final appleCredential = await SignInWithApple.getAppleIDCredential(
         scopes: [
           AppleIDAuthorizationScopes.email,
           AppleIDAuthorizationScopes.fullName,
         ],
+        nonce: hashedNonce,
       );
 
       final OAuthCredential credential = OAuthProvider("apple.com").credential(
         idToken: appleCredential.identityToken,
-        rawNonce: null, // You can generate a nonce if needed for extra security
+        rawNonce: rawNonce,
+        accessToken: appleCredential.authorizationCode,
       );
 
       final UserCredential userCredential =
@@ -105,11 +129,24 @@ class FirebaseServices extends ChangeNotifier {
         // Check if user document already exists
         final doc = await _firebaseFirestore.collection("users").doc(user.uid).get();
         if (!doc.exists) {
+          // IMPORTANT: Apple only shares email/name on FIRST signup
+          // If subsequent sign-ins happen, these will be null.
+          // We prioritize what Apple gave us, then fallback to Firebase User data.
+          
+          String? email = appleCredential.email ?? user.email;
+          String nickname = "User";
+
+          if (appleCredential.givenName != null) {
+            nickname = appleCredential.givenName!;
+          } else if (user.displayName != null) {
+            nickname = user.displayName!;
+          }
+
           // Create new user document
           await _firebaseFirestore.collection("users").doc(user.uid).set({
             "userId": user.uid,
-            "email": user.email,
-            "nickname": user.displayName ?? (appleCredential.givenName ?? "User"),
+            "email": email,
+            "nickname": nickname,
             "nameOfSchool": "Not specified",
             "password": "LOGGED_WITH_APPLE",
             "timeRegistered": FieldValue.serverTimestamp(),

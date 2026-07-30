@@ -44,7 +44,6 @@ class _ActivitiesScreenState extends ScrollablePageState<ActivitiesScreen> {
 
   @override
   void dispose() {
-    Future.delayed(const Duration(seconds: 2), _showInterstitialAd);
     activitiesScreenTopBanner?.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -65,40 +64,11 @@ class _ActivitiesScreenState extends ScrollablePageState<ActivitiesScreen> {
 
 
   void _createInterstitialAd() {
-    InterstitialAd.load(
-      adUnitId: Platform.isAndroid
-          ? "ca-app-pub-2404156870680632/2913195951"
-          : "ca-app-pub-2404156870680632/3304176259",
-      request: const AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: (InterstitialAd ad) {
-          _interstitialAd = ad;
-          _interstitialLoadAttempts = 0;
-        },
-        onAdFailedToLoad: (LoadAdError error) {
-          _interstitialLoadAttempts += 1;
-          _interstitialAd = null;
-          if (_interstitialLoadAttempts <= maxFailedLoadAttempts) {
-            _createInterstitialAd();
-          }
-        },
-      ),
-    );
+    // Interstitial ads removed from Activities per user request
   }
 
   void _showInterstitialAd() {
-    if (_interstitialAd == null) return;
-    _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
-      onAdDismissedFullScreenContent: (InterstitialAd ad) {
-        ad.dispose();
-        _createInterstitialAd();
-      },
-      onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError error) {
-        ad.dispose();
-        _createInterstitialAd();
-      },
-    );
-    _interstitialAd!.show();
+    // Interstitial ads removed from Activities per user request
   }
 
   @override

@@ -23,11 +23,19 @@ Future<void> main() async {
   final adState = AdState(initFuture);
   await Firebase.initializeApp();
   
-  if (!kDebugMode) {
+  if (kDebugMode) {
+    print("🛠️ APP CHECK: Activating in DEBUG mode...");
+  }
+
+  try {
     await FirebaseAppCheck.instance.activate(
-      providerAndroid: const AndroidPlayIntegrityProvider(),
-      providerApple: const AppleAppAttestProvider(),
+      androidProvider: kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
+      appleProvider: kDebugMode ? AppleProvider.debug : AppleProvider.appAttestWithDeviceCheckFallback,
     );
+  } catch (e) {
+    if (kDebugMode) {
+      print("❌ APP CHECK ERROR: $e");
+    }
   }
 
   runApp(

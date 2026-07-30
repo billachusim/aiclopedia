@@ -73,7 +73,7 @@ class _QuestionDetailsState extends State<QuestionDetails> {
 
   @override
   void dispose() {
-    Future.delayed(const Duration(seconds: 1), _showInterstitialAd);
+    _showInterstitialAd();
     questionDetailsTopBanner?.dispose();
     questionDetailsBottomBanner?.dispose();
     super.dispose();
@@ -421,12 +421,14 @@ class _QuestionDetailsState extends State<QuestionDetails> {
                   child: AdWidget(ad: questionDetailsTopBanner!),
                 ),
               ),
-            _buildGlassCard(context, child: Text(question.question, style: theme.textTheme.titleLarge?.copyWith(fontSize: 20))),
-            const SizedBox(height: 16.0),
+            _buildGlassCard(context, child: Text(question.question, style: theme.textTheme.titleLarge?.copyWith(fontSize: 22, fontWeight: FontWeight.bold))),
+            const SizedBox(height: 24.0),
+            Text('AI ANSWER', style: theme.textTheme.labelMedium?.copyWith(letterSpacing: 1.2, color: theme.colorScheme.secondary)),
+            const SizedBox(height: 8.0),
             _buildGlassCard(
               context,
               child: _isLoadingAnswer
-                  ? _buildLoadingIndicator(theme, text: 'Generating Answer...')
+                  ? _buildLoadingIndicator(theme, text: 'Thinking...')
                   : SelectableLinkify(
                 text: _answer,
                 onOpen: (link) async {
@@ -436,29 +438,38 @@ class _QuestionDetailsState extends State<QuestionDetails> {
                   }
                 },
                 linkStyle: TextStyle(color: theme.colorScheme.secondary),
-                style: theme.textTheme.bodyLarge?.copyWith(height: 1.5),
+                style: theme.textTheme.bodyLarge?.copyWith(height: 1.6, fontSize: 16),
               ),
             ),
-            const SizedBox(height: 24.0),
+            const SizedBox(height: 32.0),
             if (_showImage || _imageUrl.isEmpty)
               Center(
-                child: ElevatedButton.icon(
-                  icon: _isLoadingImage
-                      ? const SizedBox.shrink()
-                      : Icon(_showImage && _imageUrl.isNotEmpty
-                          ? Icons.visibility_off_outlined
-                          : Icons.image_outlined),
-                  label: _isLoadingImage
-                      ? const SpinKitThreeBounce(color: Colors.white, size: 18)
-                      : Text(_imageUrl.isNotEmpty
-                          ? (_showImage ? 'Hide Image' : 'Show Image')
-                          : 'Generate AI Image'),
-                  onPressed: _isLoadingImage ? null : _handleImageGeneration,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.accentPink,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  ),
+                child: Column(
+                  children: [
+                    if (_imageUrl.isEmpty)
+                      Text('Visualize this question with AI', style: theme.textTheme.bodySmall),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      icon: _isLoadingImage
+                          ? const SizedBox.shrink()
+                          : Icon(_showImage && _imageUrl.isNotEmpty
+                              ? Icons.visibility_off_outlined
+                              : Icons.auto_awesome),
+                      label: _isLoadingImage
+                          ? const SpinKitThreeBounce(color: Colors.white, size: 18)
+                          : Text(_imageUrl.isNotEmpty
+                              ? (_showImage ? 'Hide Illustration' : 'Show Illustration')
+                              : 'Generate AI Illustration'),
+                      onPressed: _isLoadingImage ? null : _handleImageGeneration,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.accentPink,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                        elevation: 4,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             if (_showImage && _imageUrl.isNotEmpty) ...[
