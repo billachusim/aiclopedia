@@ -30,7 +30,7 @@ class FirebaseServices extends ChangeNotifier {
   //UserModel? user;
 
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    serverClientId: '96385477704-re83cm9vsnl66mit8oi5lc7mtrugr190.apps.googleusercontent.com',
+    serverClientId: '96385477704-kcitk9f693taaqugutkeffijp2r7qfc0.apps.googleusercontent.com',
   );
 
   /// Google Sign In
@@ -78,7 +78,7 @@ class FirebaseServices extends ChangeNotifier {
       return false;
     } catch (e) {
       logger.e('Error during Google Sign In: $e');
-      return false;
+      rethrow;
     }
   }
 
@@ -130,7 +130,7 @@ class FirebaseServices extends ChangeNotifier {
       return false;
     } catch (e) {
       logger.e('Error during Apple Sign In: $e');
-      return false;
+      rethrow;
     }
   }
 
@@ -175,10 +175,10 @@ class FirebaseServices extends ChangeNotifier {
       // It's better to show feedback to the user via UI state than using Toasts here.
       logger.e('FirebaseAuthException during registration: ${e.code}');
       // Consider re-throwing a custom exception to be handled by the UI.
-      return false;
+      rethrow;
     } catch (e) {
       logger.e('An unexpected error occurred during registration: $e');
-      return false;
+      rethrow;
     }
   }
 
@@ -198,10 +198,10 @@ class FirebaseServices extends ChangeNotifier {
       return false;
     } on FirebaseAuthException catch (e) {
       logger.e("SignIn Error: ${e.code} - ${e.message}");
-      return false;
+      rethrow;
     } catch (e) {
       logger.e("SignIn Unknown Error: $e");
-      return false;
+      rethrow;
     }
   }
 

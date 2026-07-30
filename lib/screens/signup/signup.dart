@@ -1,4 +1,5 @@
 import 'package:AiClopedia/widgets/bottom_nav.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:io';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:flutter/gestures.dart';
@@ -63,20 +64,30 @@ class SignupPageState extends State<SignupPage> {
   void _handleGoogleLogin() async {
     setState(() => _isSigningIn = true);
 
-    bool success = await _firebaseServices.signInWithGoogle(context);
+    try {
+      bool success = await _firebaseServices.signInWithGoogle(context);
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    setState(() => _isSigningIn = false);
+      setState(() => _isSigningIn = false);
 
-    if (success) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => BottomNavBar()),
-        (Route<dynamic> route) => false,
-      );
-    } else {
+      if (success) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => BottomNavBar()),
+          (Route<dynamic> route) => false,
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      setState(() => _isSigningIn = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Google Sign-In failed or was cancelled.')),
+        SnackBar(content: Text(e.message ?? 'Google Sign-In failed.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSigningIn = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Google Sign-In failed: $e')),
       );
     }
   }
@@ -85,20 +96,30 @@ class SignupPageState extends State<SignupPage> {
   void _handleAppleLogin() async {
     setState(() => _isSigningIn = true);
 
-    bool success = await _firebaseServices.signInWithApple(context);
+    try {
+      bool success = await _firebaseServices.signInWithApple(context);
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    setState(() => _isSigningIn = false);
+      setState(() => _isSigningIn = false);
 
-    if (success) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => BottomNavBar()),
-        (Route<dynamic> route) => false,
-      );
-    } else {
+      if (success) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => BottomNavBar()),
+          (Route<dynamic> route) => false,
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      setState(() => _isSigningIn = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Apple Sign-In failed or was cancelled.')),
+        SnackBar(content: Text(e.message ?? 'Apple Sign-In failed.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSigningIn = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Apple Sign-In failed: $e')),
       );
     }
   }
@@ -272,30 +293,39 @@ class SignupPageState extends State<SignupPage> {
 
     setState(() => _isSigningIn = true);
 
-    bool success = await _firebaseServices.register(
-      context,
-      _emailController.text.trim(),
-      _passwordController.text, // Do NOT trim passwords
-      _nicknameController.text.trim(),
-      _nameOfSchoolController.text.trim(),
-    );
-
-    if (!mounted) return;
-
-    setState(() => _isSigningIn = false);
-
-    if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Registration successful! An ad might appear.')),
+    try {
+      bool success = await _firebaseServices.register(
+        context,
+        _emailController.text.trim(),
+        _passwordController.text, // Do NOT trim passwords
+        _nicknameController.text.trim(),
+        _nameOfSchoolController.text.trim(),
       );
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => BottomNavBar()),
-            (Route<dynamic> route) => false,
-      );
-    } else {
-      // The error message is shown by firebaseServices, but you could add a generic one here
+
+      if (!mounted) return;
+
+      setState(() => _isSigningIn = false);
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Registration successful!')),
+        );
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => BottomNavBar()),
+              (Route<dynamic> route) => false,
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      setState(() => _isSigningIn = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Registration failed. Please try again.')),
+        SnackBar(content: Text(e.message ?? 'Registration failed.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSigningIn = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Registration failed: $e')),
       );
     }
   }
