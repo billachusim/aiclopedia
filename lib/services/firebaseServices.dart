@@ -20,7 +20,7 @@ SharedPreferences? prefs;
 
 class FirebaseServices extends ChangeNotifier {
   /// create instance of Firestore
-  FirebaseFirestore _firebaseFirestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firebaseFirestore = FirebaseFirestore.instance;
 
   User? get currentUser => FirebaseAuth.instance.currentUser;
   final String usersKey = 'user';
@@ -32,10 +32,6 @@ class FirebaseServices extends ChangeNotifier {
   var uuid = Uuid();
 
   //UserModel? user;
-
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    serverClientId: '96385477704-kcitk9f693taaqugutkeffijp2r7qfc0.apps.googleusercontent.com',
-  );
 
   /// Generates a cryptographically secure random nonce, to be included in a
   /// sign-in request.
@@ -55,12 +51,19 @@ class FirebaseServices extends ChangeNotifier {
   /// Google Sign In
   Future<bool> signInWithGoogle(BuildContext context) async {
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      // Ensure GoogleSignIn is initialized
+      await GoogleSignIn.instance.initialize(
+        serverClientId: '96385477704-kcitk9f693taaqugutkeffijp2r7qfc0.apps.googleusercontent.com',
+      );
+
+      final GoogleSignInAccount? googleUser = await GoogleSignIn.instance.authenticate();
       if (googleUser == null) return false;
 
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
+      final GoogleSignInClientAuthorization googleAuthClient = await googleUser.authorizationClient.authorizeScopes([]);
+      
       final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
+        accessToken: googleAuthClient.accessToken,
         idToken: googleAuth.idToken,
       );
 
