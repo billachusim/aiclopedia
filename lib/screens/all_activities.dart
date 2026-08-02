@@ -1,10 +1,8 @@
-import 'dart:ui';
-import 'package:ai_clopedia/screens/question_details.dart';
+import 'package:ai_clopedia/widgets/question_widget.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
-import 'package:timeago/timeago.dart' as timeago;
 
 import '../app_theme.dart';
 import '../constants/scrollable_page.dart';
@@ -136,9 +134,10 @@ class _AllActivitiesScreenState extends ScrollablePageState<AllActivitiesScreen>
                     itemCount: questions.length,
                     padding: const EdgeInsets.only(top: 8, bottom: 32),
                     itemBuilder: (context, index) {
-                      final question = questions[index];
-                      // --- NEW: Use the redesigned admin question card ---
-                      return _buildAdminQuestionCard(context, question);
+                      return QuestionWidget(
+                        question: questions[index],
+                        trailing: _buildAdminActions(context, questions[index]),
+                      );
                     },
                   ),
                 );
@@ -150,122 +149,50 @@ class _AllActivitiesScreenState extends ScrollablePageState<AllActivitiesScreen>
     );
   }
 
-  // --- NEW: A dedicated widget for the admin question card view ---
-  Widget _buildAdminQuestionCard(BuildContext context, Question question) {
+  // --- NEW: dedicated widget for the admin actions ---
+  Widget _buildAdminActions(BuildContext context, Question question) {
     final theme = Theme.of(context);
     final secondaryTextColor = theme.colorScheme.onSurface.withValues(alpha: 0.7);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            decoration: BoxDecoration(
-              color: AppTheme.glassmorphismColor(context),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // --- Question Text ---
-                Text(
-                  question.question,
-                  style: theme.textTheme.titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w600, fontSize: 16),
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 12),
-                // --- User Info ---
-                Row(
-                  children: [
-                    Icon(Icons.person_outline,
-                        color: secondaryTextColor, size: 16),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        '${question.nickname} • ${question.nameOfSchool}',
-                        style: theme.textTheme.bodySmall
-                            ?.copyWith(color: secondaryTextColor),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                // --- Timestamp ---
-                Row(
-                  children: [
-                    Icon(Icons.access_time,
-                        color: secondaryTextColor, size: 16),
-                    const SizedBox(width: 8),
-                    Text(
-                      timeago.format(question.timestamp),
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: secondaryTextColor),
-                    ),
-                  ],
-                ),
-                const Divider(height: 24),
-                // --- Admin Actions ---
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // --- View Details Button ---
-                    TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                QuestionDetails(question: question),
-                          ),
-                        );
-                      },
-                      child: const Text('View Details'),
-                    ),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        const Text(
+          'Admin Controls',
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey),
+        ),
 
-                    // --- Feature Toggle ---
-                    InkWell(
-                      onTap: () => toggleFeaturedStatus(question, !question.isFeatured),
-                      borderRadius: BorderRadius.circular(20),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        child: Row(
-                          children: [
-                            Text(
-                              'Feature',
-                              style: TextStyle(
-                                  color: question.isFeatured
-                                      ? AppTheme.primaryGreen
-                                      : secondaryTextColor,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(width: 8),
-                            Icon(
-                              question.isFeatured
-                                  ? Icons.toggle_on
-                                  : Icons.toggle_off_outlined,
-                              color: question.isFeatured
-                                  ? AppTheme.primaryGreen
-                                  : secondaryTextColor,
-                              size: 30,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+        // --- Feature Toggle ---
+        InkWell(
+          onTap: () => toggleFeaturedStatus(question, !question.isFeatured),
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Row(
+              children: [
+                Text(
+                  'Feature',
+                  style: TextStyle(
+                      color: question.isFeatured
+                          ? AppTheme.primaryGreen
+                          : secondaryTextColor,
+                      fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  question.isFeatured
+                      ? Icons.toggle_on
+                      : Icons.toggle_off_outlined,
+                  color: question.isFeatured
+                      ? AppTheme.primaryGreen
+                      : secondaryTextColor,
+                  size: 30,
                 ),
               ],
             ),
           ),
         ),
-      ),
+      ],
     );
   }
 

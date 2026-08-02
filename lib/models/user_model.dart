@@ -3,7 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class UserModel {
   final String userId;
   final String nickname;
-  final String nameOfSchool;
+  final String city;
+  final String gender;
   final int credits;
   final bool isPremium;
   final DateTime? premiumExpiryDate;
@@ -16,7 +17,8 @@ class UserModel {
   UserModel({
     required this.userId,
     required this.nickname,
-    required this.nameOfSchool,
+    required this.city,
+    this.gender = 'Not specified',
     this.credits = 0,
     this.isPremium = false,
     this.premiumExpiryDate,
@@ -50,7 +52,8 @@ class UserModel {
     return UserModel(
       userId: json['userId'] ?? '',
       nickname: json['nickname'] ?? '',
-      nameOfSchool: json['nameOfSchool'] ?? '',
+      city: json['city'] ?? json['nameOfSchool'] ?? '',
+      gender: json['gender'] ?? 'Not specified',
       credits: json['credits'] ?? 0,
       isPremium: json['isPremium'] ?? false,
       premiumExpiryDate: toDateTime(json['premiumExpiryDate']),
@@ -66,7 +69,8 @@ class UserModel {
     return {
       'userId': userId,
       'nickname': nickname,
-      'nameOfSchool': nameOfSchool,
+      'city': city,
+      'gender': gender,
       'credits': credits,
       'isPremium': isPremium,
       'premiumExpiryDate': premiumExpiryDate?.toIso8601String(),

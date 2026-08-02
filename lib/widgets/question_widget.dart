@@ -1,3 +1,4 @@
+import 'package:ai_clopedia/screens/question_details.dart';
 import 'dart:ui';
 import 'package:ai_clopedia/app_state.dart';
 import 'package:ai_clopedia/services/firebase_services.dart';
@@ -13,10 +14,12 @@ import '../models/question_model.dart';
 
 class QuestionWidget extends StatefulWidget {
   final Question question;
+  final Widget? trailing; // For admin toggles or extra actions
 
   const QuestionWidget({
     super.key,
     required this.question,
+    this.trailing,
   });
 
   @override
@@ -126,30 +129,44 @@ class _QuestionWidgetState extends State<QuestionWidget> {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppTheme.glassmorphismColor(context),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.2),
-                width: 1.0,
-              ),
+      child: GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => QuestionDetails(question: widget.question),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildHeader(context),
-                const SizedBox(height: 12),
-                _buildBody(context),
-                const SizedBox(height: 16),
-                _buildFooter(context),
-              ],
+          );
+        },
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.glassmorphismColor(context),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  width: 1.0,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildHeader(context),
+                  const SizedBox(height: 12),
+                  _buildBody(context),
+                  const SizedBox(height: 16),
+                  _buildFooter(context),
+                  if (widget.trailing != null) ...[
+                    const Divider(height: 24),
+                    widget.trailing!,
+                  ],
+                ],
+              ),
             ),
           ),
         ),
@@ -181,10 +198,26 @@ class _QuestionWidgetState extends State<QuestionWidget> {
                   color: textColor,
                 ),
               ),
+              Row(
+                children: [
+                  Icon(Icons.location_on_outlined, size: 12, color: secondaryTextColor),
+                  const SizedBox(width: 4),
+                  Text(
+                    widget.question.city,
+                    style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(Icons.person_outline, size: 12, color: secondaryTextColor),
+                  const SizedBox(width: 4),
+                  Text(
+                    widget.question.gender,
+                    style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                  ),
+                ],
+              ),
               Text(
-                "${widget.question.nameOfSchool} • ${timeago.format(widget.question.timestamp)}",
-                style: TextStyle(fontSize: 12, color: secondaryTextColor),
-                overflow: TextOverflow.ellipsis,
+                timeago.format(widget.question.timestamp),
+                style: TextStyle(fontSize: 11, color: secondaryTextColor.withValues(alpha: 0.6)),
               ),
             ],
           ),
@@ -229,14 +262,91 @@ class _QuestionWidgetState extends State<QuestionWidget> {
   }
 
   Widget _buildBody(BuildContext context) {
-    return Text(
-      widget.question.question,
-      style: GoogleFonts.outfit(
-        fontWeight: FontWeight.w600,
-        fontSize: 17,
-        color: Theme.of(context).colorScheme.onSurface,
-        height: 1.4,
-      ),
+    final theme = Theme.of(context);
+    final secondaryTextColor = theme.colorScheme.onSurface.withValues(alpha: 0.7);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (widget.question.isFeatured)
+          Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryGreen.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: AppTheme.primaryGreen.withValues(alpha: 0.5)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.star, size: 12, color: AppTheme.primaryGreen),
+                const SizedBox(width: 4),
+                Text(
+                  "FEATURED",
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryGreen,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        Text(
+          widget.question.question,
+          style: GoogleFonts.outfit(
+            fontWeight: FontWeight.w600,
+            fontSize: 17,
+            color: theme.colorScheme.onSurface,
+            height: 1.4,
+          ),
+          maxLines: 3,
+          overflow: TextOverflow.ellipsis,
+        ),
+        if (widget.question.answer.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: theme.colorScheme.onSurface.withValues(alpha: 0.1)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.auto_awesome, size: 14, color: AppTheme.primaryGreen),
+                    const SizedBox(width: 6),
+                    Text(
+                      "AI ANSWER",
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: secondaryTextColor,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  widget.question.answer,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: secondaryTextColor,
+                    fontStyle: FontStyle.italic,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
     );
   }
 

@@ -26,6 +26,8 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
   bool isTyping = false;
   bool _isGenerating = false;
   bool _hasGeneratedImage = false;
+  bool _shouldSave = true;
+  bool _isPublic = true;
   late TextEditingController textEditingController;
   late ScrollController _scrollController;
   late FocusNode focusNode;
@@ -151,6 +153,7 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
                 height: imageScreenTopBanner!.size.height.toDouble(),
                 child: AdWidget(ad: imageScreenTopBanner!),
               ),
+            _buildSettingsStrip(),
             Expanded(
               child: SingleChildScrollView(
                 controller: _scrollController,
@@ -332,6 +335,54 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
     );
   }
 
+  Widget _buildSettingsStrip() {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: theme.colorScheme.surface.withValues(alpha: 0.5),
+      child: Row(
+        children: [
+          _buildToggle(
+            icon: _shouldSave ? Icons.history : Icons.history_toggle_off,
+            label: "Save",
+            value: _shouldSave,
+            onChanged: (val) => setState(() => _shouldSave = val),
+          ),
+          const SizedBox(width: 16),
+          _buildToggle(
+            icon: _isPublic ? Icons.public : Icons.public_off,
+            label: _isPublic ? "Public" : "Private",
+            value: _isPublic,
+            onChanged: _shouldSave ? (val) => setState(() => _isPublic = val) : null,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToggle({
+    required IconData icon,
+    required String label,
+    required bool value,
+    required Function(bool)? onChanged,
+  }) {
+    final theme = Theme.of(context);
+    final color = value ? theme.colorScheme.primary : Colors.grey;
+    return InkWell(
+      onTap: onChanged != null ? () => onChanged(!value) : null,
+      child: Opacity(
+        opacity: onChanged != null ? 1.0 : 0.4,
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: color),
+            const SizedBox(width: 4),
+            Text(label, style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _generateImageFct() async {
     if (_isGenerating || textEditingController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -390,13 +441,20 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
         });
       }
 
-      if (generatedImageUrl.isNotEmpty) {
-        await firebaseServices.saveQuestion(user, prompt);
-        // Important: Update the saved question with the image URL
-        // We'll need the questionId that was generated in saveQuestion
-        final String? lastQuestionId = (await SharedPreferences.getInstance()).getString('questionId');
-        if (lastQuestionId != null) {
-          await firebaseServices.saveImageUrl(lastQuestionId, url);
+      if (generatedImageUrl.isNotEmpty && _shouldSave) {
+        if (prompt.length < 20) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Prompt too short (<20 chars). It won't be saved to history.")),
+            );
+          }
+        } else {
+          await firebaseServices.saveQuestion(user, prompt, isPublic: _isPublic);
+          // Important: Update the saved question with the image URL
+          final String? lastQuestionId = (await SharedPreferences.getInstance()).getString('questionId');
+          if (lastQuestionId != null) {
+            await firebaseServices.saveImageUrl(lastQuestionId, url);
+          }
         }
       }
     } catch (e) {

@@ -14,7 +14,6 @@ import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:ai_clopedia/screens/all_activities.dart';
-import 'package:ai_clopedia/screens/question_details.dart';
 import 'package:ai_clopedia/screens/chat_screen.dart';
 import 'package:ai_clopedia/models/question_model.dart';
 import 'package:ai_clopedia/models/user_model.dart';
@@ -28,6 +27,7 @@ import '../constants/scrollable_page.dart';
 import '../widgets/auto_scroll_container.dart';
 import '../widgets/quick_chat_strips.dart';
 import 'credits_screen.dart';
+import '../services/ad_service.dart';
 
 
 class Homepage extends ScrollablePage {
@@ -48,11 +48,8 @@ class _HomepageState extends ScrollablePageState<Homepage> {
   final ScrollController _scrollController = ScrollController();
 
   RewardedInterstitialAd? _interstitialAd;
-  //int _interstitialLoadAttempts = 0;
-  //BannerAd? homeTopBanner;
   BannerAd? homeBottomBanner;
 
-  // --- MODIFIED: For managing the question stream ---
   Stream<List<Question>>? _questionStream;
   StreamSubscription? _refreshSubscription;
 
@@ -66,20 +63,37 @@ class _HomepageState extends ScrollablePageState<Homepage> {
   void _initializeHomepage() async {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       try {
-        final status = await AppTrackingTransparency.trackingAuthorizationStatus;
-        if (status == TrackingStatus.notDetermined) {
-          // Wait a bit to ensure the UI is fully loaded before showing the ATT dialog
-          await Future.delayed(const Duration(milliseconds: 1500));
-          await AppTrackingTransparency.requestTrackingAuthorization();
+        final prefs = await SharedPreferences.getInstance();
+        final lastCheckTime = prefs.getInt('last_permission_check') ?? 0;
+        final now = DateTime.now().millisecondsSinceEpoch;
+        
+        // Re-check every 7 days (7 * 24 * 60 * 60 * 1000)
+        final bool shouldRecheck = (now - lastCheckTime) > 604800000;
+
+        if (shouldRecheck) {
+          final status = await AppTrackingTransparency.trackingAuthorizationStatus;
+          if (status != TrackingStatus.authorized) {
+            await Future.delayed(const Duration(milliseconds: 1500));
+            await AppTrackingTransparency.requestTrackingAuthorization();
+          }
+          
+          if (currentUser != null) {
+            final user = await firebaseServices.getUserInfo();
+            if (!user.hasConsentedToDataSharing && mounted) {
+              await firebaseServices.checkAndRequestDataSharingConsent(context, user);
+            }
+          }
+          
+          await prefs.setInt('last_permission_check', now);
         }
       } catch (e) {
-        log("Error requesting ATT: $e");
+        log("Error requesting ATT or consent: $e");
       }
     });
 
     if (currentUser != null) {
       getUser();
-      // --- ADDED: Initialize and listen for refreshes ---
+      // Initialize and listen for refreshes
       _loadQuestionStream();
       _refreshSubscription = App.refreshFeed.stream.listen((_) {
         _loadQuestionStream();
@@ -95,8 +109,6 @@ class _HomepageState extends ScrollablePageState<Homepage> {
 
   @override
   void dispose() {
-    //Future.delayed(const Duration(seconds: 2), _showInterstitialAd);
-    //homeTopBanner?.dispose();
     homeBottomBanner?.dispose();
     _scrollController.dispose();
     _refreshSubscription?.cancel();
@@ -126,60 +138,11 @@ class _HomepageState extends ScrollablePageState<Homepage> {
     }
   }
 
-
-
-  /*void _createInterstitialAd() {
-    RewardedInterstitialAd.load(
-      adUnitId: Platform.isAndroid
-          ? "ca-app-pub-2404156870680632/7858400876"
-          : "ca-app-pub-2404156870680632/8883805999",
-      request: const AdRequest(),
-      rewardedInterstitialAdLoadCallback: RewardedInterstitialAdLoadCallback(
-        onAdLoaded: (RewardedInterstitialAd ad) {
-          _interstitialAd = ad;
-          _interstitialLoadAttempts = 0;
-        },
-        onAdFailedToLoad: (LoadAdError error) {
-          _interstitialLoadAttempts += 1;
-          _interstitialAd = null;
-          if (_interstitialLoadAttempts <= maxFailedLoadAttempts) {
-            _createInterstitialAd();
-          }
-        },
-      ),
-    );
-  }
-
-  void _showInterstitialAd() {
-    if (_interstitialAd == null) {
-      _createInterstitialAd();
-      return;
-    }
-    _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
-      onAdDismissedFullScreenContent: (RewardedInterstitialAd ad) {
-        ad.dispose();
-        _createInterstitialAd();
-      },
-      onAdFailedToShowFullScreenContent: (RewardedInterstitialAd ad, AdError error) {
-        ad.dispose();
-        _createInterstitialAd();
-      },
-    );
-    _interstitialAd!.show(onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {});
-  }*/
-
   void _loadBanners() {
     final adState = Provider.of<AdState>(context, listen: false);
     adState.initialization.then((status) {
       if (!mounted) return;
       setState(() {
-        /*homeTopBanner = BannerAd(
-          size: AdSize.banner,
-          adUnitId: adState.homeTopBannerAdUnitId,
-          request: const AdRequest(),
-          listener: BannerAdListener(onAdFailedToLoad: (ad, error) => ad.dispose()),
-        )..load();*/
-
         homeBottomBanner = BannerAd(
           size: AdSize.banner,
           adUnitId: adState.homeBottomBannerAdUnitId,
@@ -190,7 +153,6 @@ class _HomepageState extends ScrollablePageState<Homepage> {
     });
   }
 
-  // --- ADDED: New method to load and filter the question stream ---
   void _loadQuestionStream() {
     if (!mounted) return;
     setState(() {
@@ -198,7 +160,6 @@ class _HomepageState extends ScrollablePageState<Homepage> {
     });
   }
 
-  // --- MODIFIED: Complete feed-filtering logic ---
   Stream<List<Question>> getQuestionsStream() async* {
     if (currentUser == null) {
       yield []; // Return an empty stream if user is not logged in.
@@ -218,28 +179,26 @@ class _HomepageState extends ScrollablePageState<Homepage> {
     // 2. Fetch locally hidden post IDs.
     final hiddenPostIds = await hiddenPostsService.getHiddenPostIds();
 
-    // 3. Build the Firestore query without the problematic 'whereNotIn' filter.
+    // 3. Build the Firestore query
     Query query = FirebaseFirestore.instance
         .collection('questions')
         .where('isFeatured', isEqualTo: true)
         .orderBy('timestamp', descending: true)
         .limit(50);
 
-    // 4. Listen to the stream and apply client-side filtering for both hidden posts and blocked users.
+    // 4. Listen to the stream and apply client-side filtering
     await for (final querySnapshot in query.snapshots()) {
       final questions = querySnapshot.docs
           .map((doc) => Question.fromJson(doc.data() as Map<String, dynamic>))
           .where((question) {
-        // Client-side filter for locally hidden posts and blocked users.
+        // Client-side filter for locally hidden posts, blocked users, and privacy.
         final isHidden = hiddenPostIds.contains(question.questionId);
         final isBlocked = blockedUserIds.contains(question.userId);
-        return !isHidden && !isBlocked;
+        return !isHidden && !isBlocked && question.isPublic;
       }).toList();
       yield questions;
     }
   }
-
-
 
   void _onAskAiPressed() async {
     if (currentUser == null) {
@@ -311,13 +270,65 @@ class _HomepageState extends ScrollablePageState<Homepage> {
     );
   }
 
-  void _onQuestionTapped(Question question) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Getting answers.')),
-    );
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => QuestionDetails(question: question)),
+  Widget _buildUnlockCTA() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.primaryGreen.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.lock_outline, size: 48, color: AppTheme.primaryGreen),
+          const SizedBox(height: 16),
+          const Text(
+            "Want to see more?",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            "You've reached the free limit. Watch a quick ad or top up credits to unlock the full feed.",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white70),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              ElevatedButton.icon(
+                onPressed: () {
+                  final adState = Provider.of<AdState>(context, listen: false);
+                  AdService.instance.showRewardedAd(
+                    context: context,
+                    adState: adState,
+                    onRewardEarned: (reward) async {
+                      if (currentUser != null) {
+                        await firebaseServices.updateUserCredits(currentUser!.uid, reward);
+                        _loadQuestionStream(); // Refresh feed
+                      }
+                    },
+                  );
+                },
+                icon: const Icon(Icons.play_circle_fill),
+                label: const Text("Watch Ad"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryGreen,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+              OutlinedButton(
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const CreditsScreen()));
+                },
+                style: OutlinedButton.styleFrom(foregroundColor: AppTheme.primaryGreen),
+                child: const Text("Buy Credits"),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -395,24 +406,13 @@ class _HomepageState extends ScrollablePageState<Homepage> {
       body: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
-            image: AssetImage(
-              isDarkMode ? "assets/images/iconWhitePetal.png" : "assets/images/iconWhitePetal.png",
-            ),
+            image: const AssetImage("assets/images/iconWhitePetal.png"),
             fit: BoxFit.cover,
-            colorFilter: isDarkMode
-                ? ColorFilter.mode(Colors.white.withAlpha(30), BlendMode.dstATop)
-                : ColorFilter.mode(Colors.white.withAlpha(30), BlendMode.dstATop),
+            colorFilter: ColorFilter.mode(Colors.white.withAlpha(30), BlendMode.dstATop),
           ),
         ),
         child: Column(
           children: [
-            /*// --- Anchored Top Banner ---
-            if (homeTopBanner != null)
-              SizedBox(
-                height: homeTopBanner!.size.height.toDouble(),
-                child: AdWidget(ad: homeTopBanner!),
-              ),
-            // --- Scrollable Content ---*/
             Expanded(
               child: RefreshIndicator(
                 onRefresh: _handleRefresh,
@@ -471,7 +471,6 @@ class _HomepageState extends ScrollablePageState<Homepage> {
                                   ),
                                 ),
                               ),
-                              // The space that was above the header is now here
                               const SizedBox(height: 24),
                             ],
                           ),
@@ -489,7 +488,7 @@ class _HomepageState extends ScrollablePageState<Homepage> {
                               child: Align(
                                 alignment: Alignment.centerLeft,
                                 child: Text(
-                                  "Community Feed",
+                                  "Featured Questions",
                                   style: GoogleFonts.outfit(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
@@ -525,22 +524,40 @@ class _HomepageState extends ScrollablePageState<Homepage> {
                                 ),
                               );
                             }
-                            final questions = snapshot.data!;
-                            return SliverList(
-                              delegate: SliverChildBuilderDelegate(
+                            
+                            return StreamBuilder<UserModel>(
+                              stream: currentUser != null ? firebaseServices.streamUser(currentUser!.uid) : const Stream.empty(),
+                              builder: (context, userSnapshot) {
+                                final questions = snapshot.data!;
+                                bool isLimited = false;
+                                
+                                if (userSnapshot.hasData) {
+                                  final user = userSnapshot.data!;
+                                  final bool hasCredits = user.credits > 0 || user.isPremium;
+                                  final bool isUnlocked = AdService.instance.isAdUnlockedForSession;
+                                  
+                                  if (!hasCredits && !isUnlocked && questions.length > 10) {
+                                    isLimited = true;
+                                  }
+                                }
+
+                                final displayCount = isLimited ? 10 : questions.length;
+
+                                return SliverList(
+                                  delegate: SliverChildBuilderDelegate(
                                     (context, index) {
-                                  final question = questions[index];
-                                  return GestureDetector(
-                                    onTap: () => _onQuestionTapped(question),
-                                    child: QuestionWidget(question: question),
-                                  );
-                                },
-                                childCount: questions.length,
-                              ),
+                                      if (isLimited && index == displayCount) {
+                                        return _buildUnlockCTA();
+                                      }
+                                      return QuestionWidget(question: questions[index]);
+                                    },
+                                    childCount: isLimited ? displayCount + 1 : displayCount,
+                                  ),
+                                );
+                              }
                             );
                           },
                         ),
-                        // Added padding at the end of the scroll view
                         const SliverToBoxAdapter(
                           child: SizedBox(height: 16),
                         ),
@@ -550,7 +567,6 @@ class _HomepageState extends ScrollablePageState<Homepage> {
                 ),
               ),
             ),
-            // --- Anchored Bottom Banner ---
             if (homeBottomBanner != null)
               SizedBox(
                 height: homeBottomBanner!.size.height.toDouble(),
@@ -561,9 +577,6 @@ class _HomepageState extends ScrollablePageState<Homepage> {
       ),
     );
   }
-
-
-
 }
 
 
@@ -594,4 +607,3 @@ class _SliverHeaderDelegate extends SliverPersistentHeaderDelegate {
     return true; // Rebuild if properties change
   }
 }
-

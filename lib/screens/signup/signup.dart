@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../services/button.dart';
@@ -22,8 +23,9 @@ class SignupPageState extends State<SignupPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _nicknameController = TextEditingController();
-  final _nameOfSchoolController = TextEditingController();
+  final _cityController = TextEditingController();
   final _passwordController = TextEditingController();
+  String _selectedGender = 'Not specified';
   bool _isSigningIn = false;
   bool _termsAccepted = false;
   bool _openAIConsentAccepted = false;
@@ -39,7 +41,7 @@ class SignupPageState extends State<SignupPage> {
   void dispose() {
     _emailController.dispose();
     _nicknameController.dispose();
-    _nameOfSchoolController.dispose();
+    _cityController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -176,16 +178,42 @@ class SignupPageState extends State<SignupPage> {
                 ),
                 SizedBox(height: 25.0),
                 TextFormField(
-                  controller: _nameOfSchoolController,
+                  controller: _cityController,
                   keyboardType: TextInputType.text,
-                  style: TextStyle(color: textColor), // Added for theme
+                  inputFormatters: [
+                    FilteringTextInputFormatter.deny(RegExp(r'\s')), // Enforce no spaces
+                  ],
+                  style: TextStyle(color: textColor),
                   decoration: InputDecoration(
-                    labelText: 'Name Of School Or City',
+                    labelText: 'City',
+                    hintText: 'e.g. Lagos',
                     border: OutlineInputBorder(),
-                    labelStyle: TextStyle(color: hintColor), // Adjusted for theme
+                    labelStyle: TextStyle(color: hintColor),
                   ),
                   validator: (value) =>
-                  value == null || value.isEmpty ? 'Please enter your school or city name' : null,
+                  value == null || value.isEmpty ? 'Please enter your city name' : null,
+                ),
+                SizedBox(height: 25.0),
+                DropdownButtonFormField<String>(
+                  initialValue: _selectedGender,
+                  dropdownColor: isDarkMode ? const Color(0xFF1C1C1C) : Colors.white,
+                  style: TextStyle(color: textColor),
+                  decoration: InputDecoration(
+                    labelText: 'Gender (Optional)',
+                    border: OutlineInputBorder(),
+                    labelStyle: TextStyle(color: hintColor),
+                  ),
+                  items: ['Not specified', 'Male', 'Female', 'Other'].map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      _selectedGender = newValue!;
+                    });
+                  },
                 ),
                 SizedBox(height: 25.0),
                 TextFormField(
@@ -299,7 +327,8 @@ class SignupPageState extends State<SignupPage> {
         _emailController.text.trim(),
         _passwordController.text, // Do NOT trim passwords
         _nicknameController.text.trim(),
-        _nameOfSchoolController.text.trim(),
+        _cityController.text.trim(),
+        _selectedGender,
       );
 
       if (!mounted) return;

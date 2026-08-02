@@ -78,12 +78,13 @@ class FirebaseServices extends ChangeNotifier {
             "userId": user.uid,
             "email": user.email,
             "nickname": user.displayName ?? "User",
-            "nameOfSchool": "Not specified",
+            "city": "Not specified",
+            "gender": "Not specified",
             "password": "LOGGED_WITH_GOOGLE",
             "timeRegistered": FieldValue.serverTimestamp(),
             "timeLastUnlocked": FieldValue.serverTimestamp(),
             "userType": "REGULAR",
-            "credits": 50,
+            "credits": 35,
             "isPremium": false,
             "premiumExpiryDate": null,
             "blockedUsers": [],
@@ -148,12 +149,13 @@ class FirebaseServices extends ChangeNotifier {
             "userId": user.uid,
             "email": email,
             "nickname": nickname,
-            "nameOfSchool": "Not specified",
+            "city": "Not specified",
+            "gender": "Not specified",
             "password": "LOGGED_WITH_APPLE",
             "timeRegistered": FieldValue.serverTimestamp(),
             "timeLastUnlocked": FieldValue.serverTimestamp(),
             "userType": "REGULAR",
-            "credits": 50,
+            "credits": 35,
             "isPremium": false,
             "premiumExpiryDate": null,
             "blockedUsers": [],
@@ -174,7 +176,7 @@ class FirebaseServices extends ChangeNotifier {
 
   /// SignUp user
   Future<bool> register(
-      BuildContext context, String email, String password, String nickname, String nameOfSchool) async {
+      BuildContext context, String email, String password, String nickname, String city, String gender) async {
     try {
       // 1. Create user in Firebase Auth
       final userCredential = await FirebaseAuth.instance
@@ -190,12 +192,13 @@ class FirebaseServices extends ChangeNotifier {
         "userId": user.uid,
         "email": email,
         "nickname": nickname,
-        "nameOfSchool": nameOfSchool,
+        "city": city,
+        "gender": gender,
         "password": password,
         "timeRegistered": FieldValue.serverTimestamp(),
         "timeLastUnlocked": FieldValue.serverTimestamp(),
         "userType": "REGULAR",
-        "credits": 50,
+        "credits": 35,
         "isPremium": false,
         "premiumExpiryDate": null,
         "blockedUsers": [],
@@ -398,13 +401,14 @@ class FirebaseServices extends ChangeNotifier {
 
   /// END: DATA SHARING CONSENT
 
-  Future<bool> saveQuestion(UserModel user, String question) async {
+  Future<bool> saveQuestion(UserModel user, String question, {bool isPublic = true}) async {
     if (!user.hasConsentedToDataSharing) {
       logger.i('User has not consented to data sharing. Question not saved.');
       return false; // Indicate that saving was blocked by lack of consent.
     }
     final String nickname = user.nickname;
-    final String nameOfSchool = user.nameOfSchool;
+    final String city = user.city;
+    final String gender = user.gender;
     final String questionId = uuid.v1();
 
     try {
@@ -414,12 +418,14 @@ class FirebaseServices extends ChangeNotifier {
           .set({
         'userId': user.userId,
         'nickname': nickname,
-        'nameOfSchool': nameOfSchool,
+        'city': city,
+        'gender': gender,
         'question': question,
         'answer': '',
         'imageUrl': '',
         'questionId': questionId,
         'isFeatured': false,
+        'isPublic': isPublic,
         'thumbsUpCount': 0,
         'thumbsDownCount': 0,
         'timestamp': FieldValue.serverTimestamp(),

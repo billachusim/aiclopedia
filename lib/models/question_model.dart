@@ -4,7 +4,8 @@ class Question {
   final String userId;
   final String questionId;
   final String nickname;
-  final String nameOfSchool;
+  final String city;
+  final String gender;
   final String question;
   final String answer;
   final String imageUrl;
@@ -12,11 +13,13 @@ class Question {
   final int thumbsDownCount;
   final DateTime timestamp;
   final bool isFeatured;
+  final bool isPublic;
 
   Question({
     required this.userId,
     required this.nickname,
-    required this.nameOfSchool,
+    required this.city,
+    this.gender = 'Not specified',
     required this.question,
     required this.answer,
     required this.imageUrl,
@@ -25,6 +28,7 @@ class Question {
     required this.timestamp,
     required this.isFeatured,
     required this.questionId,
+    this.isPublic = true,
   });
 
   factory Question.fromJson(Map<String, dynamic> json) {
@@ -38,17 +42,19 @@ class Question {
     }
 
     return Question(
-      userId: json['userId'] ?? '', // Added null check for safety
+      userId: json['userId'] ?? '',
       nickname: json['nickname'] ?? '',
-      nameOfSchool: json['nameOfSchool'] ?? '',
-      question: json['question'] ?? '', // Added null check for safety
+      city: json['city'] ?? json['nameOfSchool'] ?? '',
+      gender: json['gender'] ?? 'Not specified',
+      question: json['question'] ?? '',
       answer: json['answer'] ?? '',
       imageUrl: json['imageUrl'] ?? '',
       thumbsUpCount: json['thumbsUpCount'] ?? 0,
       thumbsDownCount: json['thumbsDownCount'] ?? 0,
       questionId: json['questionId'] ?? '',
-      timestamp: parsedTimestamp, // Use the safely parsed timestamp
+      timestamp: parsedTimestamp,
       isFeatured: json['isFeatured'] ?? false,
+      isPublic: json['isPublic'] ?? true,
     );
   }
 }

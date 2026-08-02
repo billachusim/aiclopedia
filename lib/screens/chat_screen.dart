@@ -32,6 +32,8 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
   bool _isTyping = false;
   bool _isSending = false;
   bool _hasPerformedSearch = false;
+  bool _shouldSave = true;
+  bool _isPublic = true;
   late TextEditingController textEditingController;
   late ScrollController _listScrollController;
   late FocusNode focusNode;
@@ -248,6 +250,7 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
                   height: chatScreenTopBanner!.size.height.toDouble(),
                   child: AdWidget(ad: chatScreenTopBanner!),
                 ),
+              _buildSettingsStrip(),
               Flexible(
                 child: ListView.builder(
                     controller: _listScrollController,
@@ -316,6 +319,54 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
     );
   }
 
+  Widget _buildSettingsStrip() {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: theme.colorScheme.surface.withValues(alpha: 0.5),
+      child: Row(
+        children: [
+          _buildToggle(
+            icon: _shouldSave ? Icons.history : Icons.history_toggle_off,
+            label: "Save",
+            value: _shouldSave,
+            onChanged: (val) => setState(() => _shouldSave = val),
+          ),
+          const SizedBox(width: 16),
+          _buildToggle(
+            icon: _isPublic ? Icons.public : Icons.public_off,
+            label: _isPublic ? "Public" : "Private",
+            value: _isPublic,
+            onChanged: _shouldSave ? (val) => setState(() => _isPublic = val) : null,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToggle({
+    required IconData icon,
+    required String label,
+    required bool value,
+    required Function(bool)? onChanged,
+  }) {
+    final theme = Theme.of(context);
+    final color = value ? theme.colorScheme.primary : Colors.grey;
+    return InkWell(
+      onTap: onChanged != null ? () => onChanged(!value) : null,
+      child: Opacity(
+        opacity: onChanged != null ? 1.0 : 0.4,
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: color),
+            const SizedBox(width: 4),
+            Text(label, style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _handleSendMessage(ChatProvider chatProvider) async {
     if (_isSending || textEditingController.text.trim().isEmpty) return;
 
@@ -335,8 +386,18 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
         return;
       }
 
-      // We'll deduct credits AFTER success in sendMessageFCT to be fair
-      await firebaseServices.saveQuestion(user, question);
+      if (_shouldSave) {
+        if (question.length < 20) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Question too short (<20 chars). It won't be saved to history.")),
+            );
+          }
+        } else {
+          await firebaseServices.saveQuestion(user, question, isPublic: _isPublic);
+        }
+      }
+      
       await sendMessageFCT(chatProvider: chatProvider, user: user, creditCost: creditCost);
     } catch (e) {
       log("FIREBASE ERROR: $e");

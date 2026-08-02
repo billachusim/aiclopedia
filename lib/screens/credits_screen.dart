@@ -5,11 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart';
 import 'package:in_app_purchase_storekit/store_kit_wrappers.dart';
 
 import '../models/user_model.dart';
+import '../services/ad_state.dart';
+import '../services/ad_service.dart';
 import '../services/iap_controller.dart';
 
 class CreditsScreen extends StatefulWidget {
@@ -93,13 +96,13 @@ class _CreditsScreenState extends State<CreditsScreen> {
                       },
                     ),
 
-// --- END OF REPLACEMENT ---
-
+                    const SizedBox(height: 20),
+                    // Watch Ad for Credits
+                    if (user != null)
+                      _buildWatchAdButton(context, user.uid),
                   ],
                 ),
               ),
-
-// --- END OF REPLACEMENT ---
 
 
 
@@ -133,6 +136,67 @@ class _CreditsScreenState extends State<CreditsScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildWatchAdButton(BuildContext context, String uid) {
+    final adState = Provider.of<AdState>(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1C1C1C),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.greenAccent.withAlpha(100)),
+      ),
+      child: ListTile(
+        leading: const Icon(Icons.play_circle_fill, color: Colors.greenAccent, size: 32),
+        title: const Text("Free Credits", style: TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: const Text("Watch a short ad to earn 10 credits"),
+        trailing: const Icon(Icons.chevron_right, color: Colors.white70),
+        onTap: () {
+          _showAdPrompt(context, adState, uid);
+        },
+      ),
+    );
+  }
+
+  void _showAdPrompt(BuildContext context, AdState adState, String uid) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1C1C1C),
+        title: const Text("Earn Credits", style: TextStyle(color: Colors.white)),
+        content: const Text(
+          "By watching this short video ad, you will earn 10 free credits to use in AI Clopedia.",
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.greenAccent, foregroundColor: Colors.black),
+            onPressed: () {
+              Navigator.pop(context);
+              AdService.instance.showRewardedAd(
+                context: context,
+                adState: adState,
+                onRewardEarned: (reward) async {
+                  await FirebaseServices().updateUserCredits(uid, reward);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Congratulations! You earned $reward credits.')),
+                    );
+                  }
+                },
+              );
+            },
+            child: const Text("Watch Ad"),
+          ),
+        ],
       ),
     );
   }

@@ -112,4 +112,16 @@ class AdState {
     }
   }
 
+  String get rewardedAdUnitId {
+    if (Platform.isAndroid) {
+      // Test ID: ca-app-pub-3940256099942544/5224354917
+      return "ca-app-pub-2404156870680632/3474762993";
+    } else if (Platform.isIOS) {
+      // Test ID: ca-app-pub-3940256099942544/1712485313
+      return "ca-app-pub-2404156870680632/3283191306";
+    } else {
+      throw UnsupportedError("Unsupported platform");
+    }
+  }
+
 }

@@ -1,7 +1,5 @@
-import 'dart:developer';
 import '../models/chat_model.dart';
 import 'ai_router.dart';
-import 'ai_exceptions.dart';
 
 class AIService {
   static Future<List<ChatModel>> sendMessage({

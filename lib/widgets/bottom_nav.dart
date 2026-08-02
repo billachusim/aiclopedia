@@ -1,10 +1,13 @@
 import 'package:ai_clopedia/screens/user_activities.dart';
+import 'package:ai_clopedia/services/ad_service.dart';
+import 'package:ai_clopedia/services/ad_state.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:ai_clopedia/screens/chat_screen.dart';
 import 'package:ai_clopedia/screens/home_screen.dart';
 import 'package:ai_clopedia/screens/image_screen.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import '../app_theme.dart';
 import '../constants/scrollable_page.dart';
 import '../services/firebase_services.dart';
@@ -46,6 +49,11 @@ class _BottomNavbarState extends State<BottomNavBar> {
       2: _imageScreenKey,
       3: _activitiesKey,
     };
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final adState = Provider.of<AdState>(context, listen: false);
+      AdService.instance.createRewardedAd(adState);
+    });
   }
 
   @override

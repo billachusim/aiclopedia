@@ -21,9 +21,14 @@ exports.getAIResponse = onCall({ secrets: [GEMINI_API_KEY, OPENAI_API_KEY] }, as
     // 1. Try Gemini
     try {
         const genAI = new GoogleGenerativeAI(GEMINI_API_KEY.value());
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+        // Cost optimization: Use Lite model for simple questions (under 100 chars)
+        const isSimple = prompt.length < 100;
+        const modelName = isSimple ? "gemini-2.5-flash-lite" : "gemini-2.5-flash";
+
+        const model = genAI.getGenerativeModel({ model: modelName });
         const result = await model.generateContent(prompt);
-        return { text: result.response.text() };
+        return { text: result.response.text(), model: modelName };
     } catch (e) {
         console.error("Gemini failed, falling back to OpenAI:", e);
     }

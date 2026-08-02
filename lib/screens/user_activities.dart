@@ -1,15 +1,17 @@
-import 'dart:ui';
-import 'package:ai_clopedia/screens/question_details.dart';
 import 'package:ai_clopedia/services/firebase_services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:ai_clopedia/widgets/question_widget.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 import '../app_theme.dart';
 import '../constants/scrollable_page.dart';
 import '../models/question_model.dart';
+import '../models/user_model.dart';
 import '../services/ad_state.dart';
+import '../services/ad_service.dart';
+import 'credits_screen.dart';
 import 'login/login.dart';
 
 // --- NEW: Change StatefulWidget to ScrollablePage ---
@@ -28,11 +30,18 @@ class _ActivitiesScreenState extends ScrollablePageState<ActivitiesScreen> {
   final User? currentUser = FirebaseAuth.instance.currentUser;
   final FirebaseServices firebaseServices = FirebaseServices();
 
-  // --- NEW: Add ScrollController ---
-  final ScrollController _scrollController = ScrollController();
+  // --- NEW: Add ScrollControllers for each tab ---
+  final ScrollController _myQuestionsController = ScrollController();
+  final ScrollController _communityController = ScrollController();
 
   BannerAd? activitiesScreenTopBanner;
   InterstitialAd? _interstitialAd;
+
+  String _filterType = 'All'; // All, Text, Image
+  String _sortBy = 'Newest'; // Newest, Popular
+  String _genderFilter = 'All'; // All, Male, Female, Other
+  final TextEditingController _citySearchController = TextEditingController();
+  final TextEditingController _keywordSearchController = TextEditingController();
 
   @override
   void initState() {
@@ -43,20 +52,22 @@ class _ActivitiesScreenState extends ScrollablePageState<ActivitiesScreen> {
   @override
   void dispose() {
     activitiesScreenTopBanner?.dispose();
-    _scrollController.dispose();
+    _myQuestionsController.dispose();
+    _communityController.dispose();
+    _citySearchController.dispose();
+    _keywordSearchController.dispose();
     super.dispose();
     _interstitialAd?.dispose();
   }
 
-  // --- NEW: Implemented from ScrollablePageState ---
   @override
   void scrollToTop() {
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        0.0,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-      );
+    // Scroll the active tab to top
+    if (_myQuestionsController.hasClients) {
+      _myQuestionsController.animateTo(0, duration: const Duration(milliseconds: 500), curve: Curves.easeInOut);
+    }
+    if (_communityController.hasClients) {
+      _communityController.animateTo(0, duration: const Duration(milliseconds: 500), curve: Curves.easeInOut);
     }
   }
 
@@ -115,170 +126,297 @@ class _ActivitiesScreenState extends ScrollablePageState<ActivitiesScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    // This handles the case where the user somehow lands here without being logged in.
     if (currentUser == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('My Questions')),
+        appBar: AppBar(title: const Text('Activities')),
         body: const Center(child: Text("Please log in to see your activities.")),
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Questions'),
-        // Use theme colors for AppBar
-        backgroundColor: theme.appBarTheme.backgroundColor,
-        titleTextStyle: theme.appBarTheme.titleTextStyle,
-        iconTheme: theme.appBarTheme.iconTheme,
-        actions: [
-          PopupMenuButton(
-            color: theme.colorScheme.surface,
-            itemBuilder: (BuildContext context) => [
-              PopupMenuItem(
-                value: 'delete',
-                child: Text('Delete Account', style: TextStyle(color: theme.colorScheme.onSurface)),
-              ),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Activities'),
+          backgroundColor: theme.appBarTheme.backgroundColor,
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'My Questions'),
+              Tab(text: 'Community'),
             ],
-            onSelected: (value) {
-              if (value == 'delete') {
-                deleteAccountAlertDialog(context);
-              }
-            },
+            indicatorColor: AppTheme.primaryGreen,
+            labelColor: AppTheme.primaryGreen,
+            unselectedLabelColor: Colors.grey,
           ),
-        ],
-      ),
-      body: Column(
-        children: [
-          if (activitiesScreenTopBanner != null)
-            SizedBox(
-              height: activitiesScreenTopBanner!.size.height.toDouble(),
-              child: AdWidget(ad: activitiesScreenTopBanner!),
-            )
-          else
-            SizedBox(
-                height: 50,
-                child: Center(
-                    child: Text('Relevant ads only',
-                        style: theme.textTheme.bodySmall))),
-          Expanded(
-            child: StreamBuilder<List<Question>>(
-              stream: getQuestions(currentUser!.uid),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+          actions: [
+            PopupMenuButton(
+              color: theme.colorScheme.surface,
+              itemBuilder: (BuildContext context) => [
+                PopupMenuItem(
+                  value: 'delete',
+                  child: Text('Delete Account', style: TextStyle(color: theme.colorScheme.onSurface)),
+                ),
+              ],
+              onSelected: (value) {
+                if (value == 'delete') {
+                  deleteAccountAlertDialog(context);
                 }
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text('You have not asked any questions yet.'));
-                }
-                final questions = snapshot.data!;
-                return ListView.builder(
-                  // --- NEW: Assign ScrollController ---
-                  controller: _scrollController,
-                  itemCount: questions.length,
-                  itemBuilder: (context, index) {
-                    final question = questions[index];
-                    // --- NEW: Use a redesigned, theme-aware widget ---
-                    return _buildQuestionCard(context, question);
-                  },
-                );
               },
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // --- REVISED: Update the question card to a more refined UI ---
-  Widget _buildQuestionCard(BuildContext context, Question question) {
-    final theme = Theme.of(context);
-    final secondaryTextColor = theme.colorScheme.onSurface.withValues(alpha: 0.7);
-
-    return GestureDetector(
-      onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Getting answers.')),
-        );
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => QuestionDetails(question: question)),
-        );
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
-            child: Container(
-              padding: const EdgeInsets.all(16.0),
-              decoration: BoxDecoration(
-                color: AppTheme.glassmorphismColor(context),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+          ],
+        ),
+        body: Column(
+          children: [
+            if (activitiesScreenTopBanner != null)
+              SizedBox(
+                height: activitiesScreenTopBanner!.size.height.toDouble(),
+                child: AdWidget(ad: activitiesScreenTopBanner!),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            Expanded(
+              child: TabBarView(
                 children: [
-                  Text(
-                    question.question,
-                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600, fontSize: 16),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8.0),
-                  if (question.answer.isNotEmpty)
-                    Text(
-                      'Answer: ${question.answer}',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14, color: secondaryTextColor),
-                    ),
-                  const Divider(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Featured Status Icon
-                      Row(
-                        children: [
-                          Icon(
-                            question.isFeatured ? Icons.star : Icons.star_border,
-                            color: question.isFeatured ? AppTheme.primaryGreen : secondaryTextColor,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            question.isFeatured ? 'Featured' : 'Standard',
-                            style: theme.textTheme.bodySmall?.copyWith(color: secondaryTextColor),
-                          ),
-                        ],
-                      ),
-                      // View Button
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20.0),
-                            color: AppTheme.primaryGreen.withValues(alpha: 0.1),
-                            border: Border.all(color: AppTheme.primaryGreen)
-                        ),
-                        child: Text('VIEW DETAILS',
-                          style: TextStyle(
-                              fontSize: 12.0,
-                              color: AppTheme.primaryGreen,
-                              fontWeight: FontWeight.bold),
-                        ),
-                      )
-                    ],
-                  ),
+                  _buildMyQuestionsTab(),
+                  _buildCommunityTab(),
                 ],
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 
+  Widget _buildMyQuestionsTab() {
+    return StreamBuilder<List<Question>>(
+      stream: getQuestions(currentUser!.uid),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Center(child: Text('You have not asked any questions yet.'));
+        }
+        final questions = snapshot.data!;
+        return ListView.builder(
+          controller: _myQuestionsController,
+          itemCount: questions.length,
+          itemBuilder: (context, index) {
+            return QuestionWidget(question: questions[index]);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildCommunityTab() {
+    return Column(
+      children: [
+        _buildFilters(),
+        Expanded(
+          child: StreamBuilder<List<Question>>(
+            stream: getCommunityQuestions(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const Center(child: Text('No community questions found.'));
+              }
+              
+              return StreamBuilder<UserModel>(
+                stream: currentUser != null ? firebaseServices.streamUser(currentUser!.uid) : Stream.empty(),
+                builder: (context, userSnapshot) {
+                  final questions = snapshot.data!;
+                  bool isLimited = false;
+                  
+                  if (userSnapshot.hasData) {
+                    final user = userSnapshot.data!;
+                    final bool hasCredits = user.credits > 0 || user.isPremium;
+                    final bool isUnlocked = AdService.instance.isAdUnlockedForSession;
+                    
+                    if (!hasCredits && !isUnlocked && questions.length > 10) {
+                      isLimited = true;
+                    }
+                  }
+
+                  final displayCount = isLimited ? 10 : questions.length;
+
+                  return ListView.builder(
+                    controller: _communityController,
+                    itemCount: isLimited ? displayCount + 1 : displayCount,
+                    itemBuilder: (context, index) {
+                      if (isLimited && index == displayCount) {
+                        return _buildUnlockCTA();
+                      }
+                      return QuestionWidget(question: questions[index]);
+                    },
+                  );
+                }
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFilters() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Column(
+        children: [
+          TextField(
+            controller: _keywordSearchController,
+            decoration: InputDecoration(
+              hintText: 'Search keywords...',
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onChanged: (val) => setState(() {}),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _citySearchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search city...',
+                    prefixIcon: const Icon(Icons.location_on_outlined),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onChanged: (val) => setState(() {}),
+                ),
+              ),
+              const SizedBox(width: 8),
+              DropdownButton<String>(
+                value: _genderFilter,
+                items: ['All', 'Male', 'Female', 'Other'].map((String value) {
+                  return DropdownMenuItem<String>(value: value, child: Text(value));
+                }).toList(),
+                onChanged: (val) => setState(() => _genderFilter = val!),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              DropdownButton<String>(
+                value: _filterType,
+                items: ['All', 'Text', 'Image'].map((String value) {
+                  return DropdownMenuItem<String>(value: value, child: Text(value));
+                }).toList(),
+                onChanged: (val) => setState(() => _filterType = val!),
+              ),
+              DropdownButton<String>(
+                value: _sortBy,
+                items: ['Newest', 'Popular'].map((String value) {
+                  return DropdownMenuItem<String>(value: value, child: Text(value));
+                }).toList(),
+                onChanged: (val) => setState(() => _sortBy = val!),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUnlockCTA() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.primaryGreen.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.lock_outline, size: 48, color: AppTheme.primaryGreen),
+          const SizedBox(height: 16),
+          const Text("Unlock Full Community Feed", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          const Text(
+            "Watch an ad or use credits to browse all community questions.",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white70),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              ElevatedButton.icon(
+                onPressed: () {
+                  final adState = Provider.of<AdState>(context, listen: false);
+                  AdService.instance.showRewardedAd(
+                    context: context,
+                    adState: adState,
+                    onRewardEarned: (reward) async {
+                      if (currentUser != null) {
+                        await firebaseServices.updateUserCredits(currentUser!.uid, reward);
+                        setState(() {});
+                      }
+                    },
+                  );
+                },
+                icon: const Icon(Icons.play_circle_fill),
+                label: const Text("Watch Ad"),
+                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryGreen, foregroundColor: Colors.white),
+              ),
+              OutlinedButton(
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CreditsScreen())),
+                style: OutlinedButton.styleFrom(foregroundColor: AppTheme.primaryGreen),
+                child: const Text("Buy Credits"),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Stream<List<Question>> getCommunityQuestions() {
+    Query query = FirebaseFirestore.instance.collection('questions');
+    
+    if (_filterType == 'Text') {
+      query = query.where('imageUrl', isEqualTo: '');
+    } else if (_filterType == 'Image') {
+      query = query.where('imageUrl', isNotEqualTo: '');
+    }
+
+    if (_genderFilter != 'All') {
+      query = query.where('gender', isEqualTo: _genderFilter);
+    }
+
+    final citySearch = _citySearchController.text.trim();
+    if (citySearch.isNotEmpty) {
+      query = query.where('city', isEqualTo: citySearch);
+    }
+
+    if (_sortBy == 'Newest') {
+      query = query.orderBy('timestamp', descending: true);
+    } else {
+      query = query.orderBy('thumbsUpCount', descending: true);
+    }
+
+    final keyword = _keywordSearchController.text.trim().toLowerCase();
+
+    return query.limit(100).snapshots().map((snap) {
+      final docs = snap.docs
+          .map((doc) => Question.fromJson(doc.data() as Map<String, dynamic>))
+          .where((q) => q.isPublic)
+          .toList();
+      
+      if (keyword.isEmpty) return docs;
+      
+      return docs.where((q) => 
+        q.question.toLowerCase().contains(keyword) || 
+        q.answer.toLowerCase().contains(keyword)
+      ).toList();
+    });
+  }
 
   Stream<List<Question>> getQuestions(String userId) {
     return FirebaseFirestore.instance
