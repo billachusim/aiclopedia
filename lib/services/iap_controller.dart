@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:AiClopedia/services/firebaseServices.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -14,12 +15,15 @@ class IAPController extends GetxController {
   final RxBool isAvailable = false.obs;
   final RxBool isLoading = true.obs;
 
-  static const String premiumProductId = 'premium_monthly';
-  static const Set<String> _kIds = {
+  static String get premiumProductId =>
+      Platform.isIOS ? 'ai_premium_monthly' : 'premium_monthly';
+
+  static final Set<String> _kIds = {
     'credits_1200', // Starter
     'credits_3500', // Most Popular
     'credits_7500', // Best Value
-    premiumProductId,
+    'premium_monthly',
+    'ai_premium_monthly',
   };
 
   @override

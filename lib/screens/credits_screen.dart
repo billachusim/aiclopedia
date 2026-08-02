@@ -267,7 +267,7 @@ class _CreditsScreenState extends State<CreditsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildPerk("Unlimited access to join and schedule calls"),
+                  _buildPerk("Unlimited access to ask questions"),
                   _buildPerk("10,000 bonus credits monthly"),
                 ],
               ),
