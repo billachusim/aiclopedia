@@ -1,4 +1,4 @@
-import 'package:AiClopedia/services/firebaseServices.dart';
+import 'package:ai_clopedia/services/firebase_services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -9,7 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart';
 import 'package:in_app_purchase_storekit/store_kit_wrappers.dart';
 
-import '../models/userModel.dart';
+import '../models/user_model.dart';
 import '../services/iap_controller.dart';
 
 class CreditsScreen extends StatefulWidget {

@@ -38,7 +38,7 @@ class UserModel {
     }
 
     // Helper function to safely convert Timestamps to DateTime
-    DateTime? _toDateTime(dynamic value) {
+    DateTime? toDateTime(dynamic value) {
       if (value is Timestamp) {
         return value.toDate();
       } else if (value is String) {
@@ -53,9 +53,9 @@ class UserModel {
       nameOfSchool: json['nameOfSchool'] ?? '',
       credits: json['credits'] ?? 0,
       isPremium: json['isPremium'] ?? false,
-      premiumExpiryDate: _toDateTime(json['premiumExpiryDate']),
-      timeRegistered: _toDateTime(json['timeRegistered']),
-      timeLastUnlocked: _toDateTime(json['timeLastUnlocked']),
+      premiumExpiryDate: toDateTime(json['premiumExpiryDate']),
+      timeRegistered: toDateTime(json['timeRegistered']),
+      timeLastUnlocked: toDateTime(json['timeLastUnlocked']),
       userType: json['userType'] ?? 'REGULAR',
       blockedUsers: blockedList,
       hasConsentedToDataSharing: json['hasConsentedToDataSharing'] ?? false,

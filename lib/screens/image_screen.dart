@@ -1,6 +1,6 @@
 import 'dart:io';
-import 'package:AiClopedia/models/userModel.dart';
-import 'package:AiClopedia/paywall_overlay.dart';
+import 'package:ai_clopedia/models/user_model.dart';
+import 'package:ai_clopedia/paywall_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -8,7 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/scrollable_page.dart';
 import '../services/ad_state.dart';
-import '../services/firebaseServices.dart';
+import '../services/firebase_services.dart';
 import '../services/image_engine.dart';
 
 class ImageScreen extends ScrollablePage {
@@ -306,8 +306,8 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
                 "Please do not share sensitive personal information.",
                 style: TextStyle(fontSize: 14),
               ),
-              const SizedBox(height: 10),
-              const Text(
+              SizedBox(height: 10),
+              Text(
                 "For more details, please review our Privacy Policy.",
                 style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
               ),
@@ -372,7 +372,7 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
 
       if (mounted && !user.isPremium) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Deducting $creditCost credits and generating image...')),
+          SnackBar(content: Text('Generating image (Cost: $creditCost credits)...')),
         );
       }
 

@@ -1,5 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:AiClopedia/services/image_cache.dart';
+import 'package:ai_clopedia/services/image_cache.dart';
 
 class ImageEngine {
   ImageEngine._();

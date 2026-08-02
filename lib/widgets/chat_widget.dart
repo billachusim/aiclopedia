@@ -1,9 +1,7 @@
 import 'package:animated_text_kit/animated_text_kit.dart';
-import 'package:AiClopedia/constants/constants.dart';
-import 'package:AiClopedia/services/assets_manager.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:ai_clopedia/constants/constants.dart';
+import 'package:ai_clopedia/services/assets_manager.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/src/widgets/framework.dart';
 
 import 'text_widget.dart';
 

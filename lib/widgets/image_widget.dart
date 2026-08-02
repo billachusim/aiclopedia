@@ -5,8 +5,8 @@ class ImageWidget extends StatelessWidget {
   final String msg;
 
   const ImageWidget({
-    Key? key, required this.msg,
-  }) : super(key: key);
+    super.key, required this.msg,
+  });
 
   @override
   Widget build(BuildContext context) {

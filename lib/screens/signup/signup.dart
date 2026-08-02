@@ -1,4 +1,4 @@
-import 'package:AiClopedia/widgets/bottom_nav.dart';
+import 'package:ai_clopedia/widgets/bottom_nav.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:io';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../services/button.dart';
-import '../../services/firebaseServices.dart';
+import '../../services/firebase_services.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});

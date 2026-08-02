@@ -17,10 +17,10 @@ final List<Map<String, String>> inspirationalQuotes = [
 class InspirationalQuoteCard extends StatefulWidget {
   final String nickname;
 
-  const InspirationalQuoteCard({Key? key, required this.nickname}) : super(key: key);
+  const InspirationalQuoteCard({super.key, required this.nickname});
 
   @override
-  _InspirationalQuoteCardState createState() => _InspirationalQuoteCardState();
+  State<InspirationalQuoteCard> createState() => _InspirationalQuoteCardState();
 }
 
 class _InspirationalQuoteCardState extends State<InspirationalQuoteCard> {
@@ -36,7 +36,7 @@ class _InspirationalQuoteCardState extends State<InspirationalQuoteCard> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDarkMode ? Colors.grey[850]!.withOpacity(0.9) : Colors.white;
+    final cardColor = isDarkMode ? Colors.grey[850]!.withValues(alpha: 0.9) : Colors.white;
     final textColor = Theme.of(context).colorScheme.onSurface;
     final accentColor = Theme.of(context).colorScheme.secondary; // AccentPink
 
@@ -50,13 +50,13 @@ class _InspirationalQuoteCardState extends State<InspirationalQuoteCard> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
         border: Border.all(
-          color: isDarkMode ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2),
+          color: isDarkMode ? Colors.white.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -87,7 +87,7 @@ class _InspirationalQuoteCardState extends State<InspirationalQuoteCard> {
                       style: GoogleFonts.lato(
                         fontSize: 16,
                         fontStyle: FontStyle.italic,
-                        color: textColor.withOpacity(0.9),
+                        color: textColor.withValues(alpha: 0.9),
                         height: 1.5,
                       ),
                     ),
@@ -97,7 +97,7 @@ class _InspirationalQuoteCardState extends State<InspirationalQuoteCard> {
                       style: GoogleFonts.lato(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: textColor.withOpacity(0.7),
+                        color: textColor.withValues(alpha: 0.7),
                       ),
                     ),
                   ],

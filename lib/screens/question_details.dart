@@ -1,14 +1,13 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
-import 'package:AiClopedia/app_state.dart';
-import 'package:AiClopedia/services/hidden_posts_service.dart';
+import 'package:ai_clopedia/app_state.dart';
+import 'package:ai_clopedia/services/hidden_posts_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:AiClopedia/models/questionModel.dart';
-import 'package:flutter/foundation.dart';
+import 'package:ai_clopedia/models/question_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:provider/provider.dart';
@@ -17,20 +16,20 @@ import 'package:timeago/timeago.dart' as timeago;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../app_theme.dart';
-import '../models/userModel.dart';
+import '../models/user_model.dart';
 import '../paywall_overlay.dart';
 import '../services/ad_state.dart';
 import '../services/answer_engine.dart';
-import '../services/firebaseServices.dart';
+import '../services/firebase_services.dart';
 import '../services/image_engine.dart';
 
 class QuestionDetails extends StatefulWidget {
   final Question question;
 
-  const QuestionDetails({Key? key, required this.question}) : super(key: key);
+  const QuestionDetails({super.key, required this.question});
 
   @override
-  _QuestionDetailsState createState() => _QuestionDetailsState();
+  State<QuestionDetails> createState() => _QuestionDetailsState();
 }
 
 const int maxFailedLoadAttempts = 3;

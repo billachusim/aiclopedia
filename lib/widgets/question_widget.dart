@@ -1,7 +1,7 @@
 import 'dart:ui';
-import 'package:AiClopedia/app_state.dart';
-import 'package:AiClopedia/services/firebaseServices.dart';
-import 'package:AiClopedia/services/hidden_posts_service.dart';
+import 'package:ai_clopedia/app_state.dart';
+import 'package:ai_clopedia/services/firebase_services.dart';
+import 'package:ai_clopedia/services/hidden_posts_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -9,18 +9,18 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 import '../app_theme.dart';
-import '../models/questionModel.dart';
+import '../models/question_model.dart';
 
 class QuestionWidget extends StatefulWidget {
   final Question question;
 
   const QuestionWidget({
-    Key? key,
+    super.key,
     required this.question,
-  }) : super(key: key);
+  });
 
   @override
-  _QuestionWidgetState createState() => _QuestionWidgetState();
+  State<QuestionWidget> createState() => _QuestionWidgetState();
 }
 
 class _QuestionWidgetState extends State<QuestionWidget> {

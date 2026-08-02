@@ -1,4 +1,4 @@
-import '../../services/firebaseServices.dart';
+import '../../services/firebase_services.dart';
 import 'ai_service.dart';
 
 class AnswerEngine {
@@ -37,19 +37,22 @@ class AnswerEngine {
     }
 
     // ✅ 4 — LAST RESORT → Generate
-    final generated = await _generateAnswer(question);
+    try {
+      final generated = await _generateAnswer(question);
 
-    if (generated.isNotEmpty && !generated.startsWith('⚠️')) {
-      await _firebase.saveAnswer(questionId, generated);
-      _memoryCache[questionId] = generated;
+      if (generated.isNotEmpty) {
+        await _firebase.saveAnswer(questionId, generated);
+        _memoryCache[questionId] = generated;
+      }
+
+      return generated;
+    } catch (e) {
+      return "⚠️ Failed to generate answer. ${e.toString()}";
     }
-
-    return generated;
   }
 
   Future<String> _generateAnswer(String question) async {
     final chatModels = await AIService.sendMessage(message: question);
-    // chatModels[0].msg will contain the response or an error message
     return chatModels.first.msg;
   }
 }

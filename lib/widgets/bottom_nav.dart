@@ -1,13 +1,13 @@
-import 'package:AiClopedia/screens/user_activities.dart';
+import 'package:ai_clopedia/screens/user_activities.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:AiClopedia/screens/chat_screen.dart';
-import 'package:AiClopedia/screens/home_screen.dart';
-import 'package:AiClopedia/screens/image_screen.dart';
+import 'package:ai_clopedia/screens/chat_screen.dart';
+import 'package:ai_clopedia/screens/home_screen.dart';
+import 'package:ai_clopedia/screens/image_screen.dart';
 import 'package:flutter/services.dart';
 import '../app_theme.dart';
 import '../constants/scrollable_page.dart';
-import '../services/firebaseServices.dart';
+import '../services/firebase_services.dart';
 import '../services/helper.dart';
 
 
@@ -112,15 +112,17 @@ class _BottomNavbarState extends State<BottomNavBar> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     SizeConfig().init(context);
 
-    return WillPopScope(
-      onWillPop: () async {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, dynamic result) async {
+        if (didPop) return;
         if (_select != 0) {
           // If not on the home tab, switch to it instead of popping.
           setTabIndex(0);
-          return false; // Prevent app from closing
+        } else {
+          // If on the home tab, let the system handle the back button.
+          SystemNavigator.pop();
         }
-        // If on the home tab, let the system handle the back button.
-        return true;
       },
       child: Scaffold(
         body: PageView(

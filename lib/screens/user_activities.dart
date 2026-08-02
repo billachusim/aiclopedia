@@ -1,7 +1,6 @@
-import 'dart:io';
 import 'dart:ui';
-import 'package:AiClopedia/screens/question_details.dart';
-import 'package:AiClopedia/services/firebaseServices.dart';
+import 'package:ai_clopedia/screens/question_details.dart';
+import 'package:ai_clopedia/services/firebase_services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -9,13 +8,13 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 import '../app_theme.dart';
 import '../constants/scrollable_page.dart';
-import '../models/questionModel.dart';
+import '../models/question_model.dart';
 import '../services/ad_state.dart';
 import 'login/login.dart';
 
 // --- NEW: Change StatefulWidget to ScrollablePage ---
 class ActivitiesScreen extends ScrollablePage {
-  const ActivitiesScreen({Key? key}) : super(key: key);
+  const ActivitiesScreen({super.key});
 
   @override
   // --- NEW: The State class now extends ScrollablePageState ---
@@ -34,7 +33,6 @@ class _ActivitiesScreenState extends ScrollablePageState<ActivitiesScreen> {
 
   BannerAd? activitiesScreenTopBanner;
   InterstitialAd? _interstitialAd;
-  int _interstitialLoadAttempts = 0;
 
   @override
   void initState() {
@@ -67,10 +65,6 @@ class _ActivitiesScreenState extends ScrollablePageState<ActivitiesScreen> {
     // Interstitial ads removed from Activities per user request
   }
 
-  void _showInterstitialAd() {
-    // Interstitial ads removed from Activities per user request
-  }
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -92,7 +86,7 @@ class _ActivitiesScreenState extends ScrollablePageState<ActivitiesScreen> {
     }
   }
 
-  deleteAccountAlertDialog(BuildContext context) {
+  void deleteAccountAlertDialog(BuildContext context) {
     Widget cancelButton = TextButton(
       child: const Text("CANCEL"),
       onPressed: () => Navigator.of(context).pop(),
@@ -198,7 +192,7 @@ class _ActivitiesScreenState extends ScrollablePageState<ActivitiesScreen> {
   // --- REVISED: Update the question card to a more refined UI ---
   Widget _buildQuestionCard(BuildContext context, Question question) {
     final theme = Theme.of(context);
-    final secondaryTextColor = theme.colorScheme.onSurface.withOpacity(0.7);
+    final secondaryTextColor = theme.colorScheme.onSurface.withValues(alpha: 0.7);
 
     return GestureDetector(
       onTap: () {
@@ -221,7 +215,7 @@ class _ActivitiesScreenState extends ScrollablePageState<ActivitiesScreen> {
               decoration: BoxDecoration(
                 color: AppTheme.glassmorphismColor(context),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withOpacity(0.2)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -264,7 +258,7 @@ class _ActivitiesScreenState extends ScrollablePageState<ActivitiesScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(20.0),
-                            color: AppTheme.primaryGreen.withOpacity(0.1),
+                            color: AppTheme.primaryGreen.withValues(alpha: 0.1),
                             border: Border.all(color: AppTheme.primaryGreen)
                         ),
                         child: Text('VIEW DETAILS',

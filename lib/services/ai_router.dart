@@ -1,5 +1,8 @@
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:logger/logger.dart';
 import 'ai_exceptions.dart';
+
+final Logger _logger = Logger();
 
 class AIRouter {
   /// Orchestrates message routing via Firebase Cloud Functions for security.
@@ -18,10 +21,10 @@ class AIRouter {
 
       return response;
     } on FirebaseFunctionsException catch (e) {
-      print("Cloud Function Error: ${e.code} - ${e.message}");
+      _logger.e("Cloud Function Error: ${e.code} - ${e.message}");
       throw AIException(e.message ?? "AI Service Error");
     } catch (e) {
-      print("Unexpected Error calling Cloud Function: $e");
+      _logger.e("Unexpected Error calling Cloud Function: $e");
       throw AIModelUnavailableException();
     }
   }

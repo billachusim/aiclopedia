@@ -3,13 +3,13 @@ import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class TextWidget extends StatelessWidget {
-  const TextWidget(
-      {Key? key,
-      required this.label,
-      this.fontSize = 18,
-      this.color,
-      this.fontWeight})
-      : super(key: key);
+  const TextWidget({
+    super.key,
+    required this.label,
+    this.fontSize = 18,
+    this.color,
+    this.fontWeight,
+  });
 
   final String label;
   final double fontSize;
@@ -20,11 +20,11 @@ class TextWidget extends StatelessWidget {
     return SelectableLinkify(
       text: label,
       onOpen: (link) async {
-        final Uri url = Uri.parse("${link.url}");
+        final Uri url = Uri.parse(link.url);
         if (await canLaunchUrl(url)) {
           await launchUrl(url);
         } else {
-          throw 'Could not launch $link';
+          throw 'Could not launch ${link.url}';
         }
       },
       linkStyle: TextStyle(color: Colors.blue),

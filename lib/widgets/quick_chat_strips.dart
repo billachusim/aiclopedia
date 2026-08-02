@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 class QuickChatStrips extends StatelessWidget {
   final Function(String) onSelect;
 
-  const QuickChatStrips({Key? key, required this.onSelect}) : super(key: key);
+  const QuickChatStrips({super.key, required this.onSelect});
 
   static const List<Map<String, dynamic>> _categories = [
     {'label': '💡 Random Fact', 'prompt': 'Tell me an interesting random fact I probably don\'t know.'},
@@ -27,7 +27,7 @@ class QuickChatStrips extends StatelessWidget {
             style: GoogleFonts.outfit(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
             ),
           ),
         ),
@@ -49,7 +49,7 @@ class QuickChatStrips extends StatelessWidget {
                   backgroundColor: Theme.of(context).colorScheme.surface,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
-                    side: BorderSide(color: Theme.of(context).colorScheme.primary.withOpacity(0.2)),
+                    side: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)),
                   ),
                 ),
               );

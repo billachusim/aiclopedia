@@ -1,18 +1,17 @@
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:AiClopedia/screens/login/login.dart';
+import 'package:ai_clopedia/screens/login/login.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
-import '../models/userModel.dart';
+import '../models/user_model.dart';
 
 
 Logger logger = Logger();
@@ -56,8 +55,7 @@ class FirebaseServices extends ChangeNotifier {
         serverClientId: '96385477704-kcitk9f693taaqugutkeffijp2r7qfc0.apps.googleusercontent.com',
       );
 
-      final GoogleSignInAccount? googleUser = await GoogleSignIn.instance.authenticate();
-      if (googleUser == null) return false;
+      final googleUser = await GoogleSignIn.instance.authenticate();
 
       final GoogleSignInAuthentication googleAuth = googleUser.authentication;
       final GoogleSignInClientAuthorization googleAuthClient = await googleUser.authorizationClient.authorizeScopes([]);
@@ -252,10 +250,11 @@ class FirebaseServices extends ChangeNotifier {
   Future<bool> isUserSignIn(BuildContext context) async {
     final uid = await getUsersId();
     if (uid == null || uid.isEmpty) {
+      if (!context.mounted) return false;
       Navigator.push(
         context,
         MaterialPageRoute(
-            builder: (context) => LoginPage()),
+            builder: (context) => const LoginPage()),
       );      return false;
     }
     return true;

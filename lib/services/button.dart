@@ -3,11 +3,11 @@ import 'helper.dart';
 
 class DefaultButton extends StatelessWidget {
   const DefaultButton({
-    Key? key,
+    super.key,
     this.text,
     this.press,
     this.disabled = false, // Add a disabled property to track the button's state
-  }) : super(key: key);
+  });
 
   final String? text;
   final Function? press;

@@ -1,5 +1,5 @@
 import 'dart:ui';
-import 'package:AiClopedia/screens/question_details.dart';
+import 'package:ai_clopedia/screens/question_details.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -8,13 +8,13 @@ import 'package:timeago/timeago.dart' as timeago;
 
 import '../app_theme.dart';
 import '../constants/scrollable_page.dart';
-import '../models/questionModel.dart';
+import '../models/question_model.dart';
 import '../services/ad_state.dart';
-import '../services/firebaseServices.dart';
+import '../services/firebase_services.dart';
 
 // --- NEW: Change StatefulWidget to ScrollablePage ---
 class AllActivitiesScreen extends ScrollablePage {
-  const AllActivitiesScreen({Key? key}) : super(key: key);
+  const AllActivitiesScreen({super.key});
 
   @override
   // --- NEW: The State class now extends ScrollablePageState ---

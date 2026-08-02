@@ -1,10 +1,10 @@
 import 'dart:ui';
-import 'package:AiClopedia/screens/credits_screen.dart';
-import 'package:AiClopedia/services/firebaseServices.dart';
+import 'package:ai_clopedia/screens/credits_screen.dart';
+import 'package:ai_clopedia/services/firebase_services.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'models/userModel.dart';
+import 'models/user_model.dart';
 
 class PaywallOverlay extends StatelessWidget {
   final UserModel user;

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 /// An abstract class defining the contract for a page that can be scrolled to the top.
 abstract class ScrollablePage extends StatefulWidget {
-  const ScrollablePage({Key? key}) : super(key: key);
+  const ScrollablePage({super.key});
 }
 
 abstract class ScrollablePageState<T extends ScrollablePage> extends State<T> {

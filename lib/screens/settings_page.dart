@@ -1,30 +1,18 @@
-import 'package:AiClopedia/services/firebaseServices.dart';
+import 'package:ai_clopedia/services/firebase_services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SettingsPage extends StatefulWidget {
-  const SettingsPage({Key? key}) : super(key: key);
+  const SettingsPage({super.key});
 
   @override
-  _SettingsPageState createState() => _SettingsPageState();
+  State<SettingsPage> createState() => _SettingsPageState();
 }
 
 class _SettingsPageState extends State<SettingsPage> {
   final FirebaseServices _firebaseServices = FirebaseServices();
   final User? currentUser = FirebaseAuth.instance.currentUser;
-
-  void _launchDeletionPolicy() async {
-    final Uri url = Uri.parse("https://sites.google.com/view/claire-diary/delete-your-dear-claire-account?authuser=0");
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } else {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open the policy page.')),
-      );
-    }
-  }
 
   void _signOut() {
     _firebaseServices.signOut(context);

@@ -5,7 +5,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../services/button.dart';
-import '../../services/firebaseServices.dart';
+import '../../services/firebase_services.dart';
 import '../../widgets/bottom_nav.dart';
 import '../signup/signup.dart';
 

@@ -15,14 +15,20 @@ class ChatProvider with ChangeNotifier {
   Future<void> sendMessageAndGetAnswers({
     required String msg,
   }) async {
+    try {
+      final answers = await AIService.sendMessage(
+        message: msg,
+      );
 
-    final answers = await AIService.sendMessage(
-      message: msg,
-    );
-
-    chatList.addAll(answers);
-
-    notifyListeners();
+      chatList.addAll(answers);
+    } catch (e) {
+      chatList.add(ChatModel(
+        msg: "⚠️ Error: ${e.toString()}",
+        chatIndex: 1,
+      ));
+      rethrow; // Rethrow to let the UI know it failed for credit deduction
+    } finally {
+      notifyListeners();
+    }
   }
-
 }

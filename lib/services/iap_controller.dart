@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:AiClopedia/services/firebaseServices.dart';
+import 'package:ai_clopedia/services/firebase_services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';

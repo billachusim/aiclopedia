@@ -1,4 +1,4 @@
-const { onRequest, onCall } = require("firebase-functions/v2/https");
+const { onRequest, onCall, HttpsError } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const OpenAI = require("openai");
@@ -15,16 +15,15 @@ exports.getAIResponse = onCall({ secrets: [GEMINI_API_KEY, OPENAI_API_KEY] }, as
     const prompt = request.data.prompt;
 
     if (!prompt) {
-        throw new Error("Prompt is required");
+        throw new HttpsError("invalid-argument", "Prompt is required");
     }
 
     // 1. Try Gemini
     try {
         const genAI = new GoogleGenerativeAI(GEMINI_API_KEY.value());
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         const result = await model.generateContent(prompt);
-        const response = await result.response;
-        return { text: response.text() };
+        return { text: result.response.text() };
     } catch (e) {
         console.error("Gemini failed, falling back to OpenAI:", e);
     }
@@ -39,7 +38,11 @@ exports.getAIResponse = onCall({ secrets: [GEMINI_API_KEY, OPENAI_API_KEY] }, as
         return { text: completion.choices[0].message.content };
     } catch (e) {
         console.error("OpenAI also failed:", e);
-        throw new Error("AI services unavailable");
+        // If both fail, throw a descriptive HttpsError
+        if (e.code === 'insufficient_quota' || e.code === 'credit_balance_exhausted') {
+            throw new HttpsError("unavailable", "AI quota exhausted. Please try again later.");
+        }
+        throw new HttpsError("internal", "AI services unavailable");
     }
 });
 

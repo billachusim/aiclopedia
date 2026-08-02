@@ -3,18 +3,18 @@ import 'dart:developer';
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:AiClopedia/providers/chats_provider.dart';
-import 'package:AiClopedia/widgets/chat_widget.dart';
+import 'package:ai_clopedia/providers/chats_provider.dart';
+import 'package:ai_clopedia/widgets/chat_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants/scrollable_page.dart';
-import '../models/userModel.dart';
+import '../models/user_model.dart';
 import '../paywall_overlay.dart';
 import '../services/ad_state.dart';
-import '../services/firebaseServices.dart';
+import '../services/firebase_services.dart';
 
 class ChatScreen extends ScrollablePage {
   final String? initialPrompt;
@@ -187,7 +187,7 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
           _interstitialLoadAttempts = 0;
         },
         onAdFailedToLoad: (LoadAdError error) {
-          print('Failed to load an interstitial ad: ${error.message}');
+          log('Failed to load an interstitial ad: ${error.message}');
           _interstitialLoadAttempts += 1;
           _interstitialAd = null;
           if (_interstitialLoadAttempts <= maxFailedLoadAttempts) {
@@ -219,12 +219,14 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
     final chatProvider = Provider.of<ChatProvider>(context);
     final theme = Theme.of(context);
 
-    return WillPopScope(
-      onWillPop: () {
-        if (chatProvider.getChatList.isNotEmpty) {
-          chatProvider.chatList.clear();
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (bool didPop, dynamic result) {
+        if (didPop) {
+          if (chatProvider.getChatList.isNotEmpty) {
+            chatProvider.chatList.clear();
+          }
         }
-        return Future.value(true);
       },
       child: Scaffold(
         appBar: AppBar(
@@ -328,6 +330,7 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
       final user = await firebaseServices.getUserInfo();
 
       if (!user.isPremium && user.credits < creditCost) {
+        if (!mounted) return;
         _showPaywall(user);
         return;
       }
@@ -405,8 +408,9 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
       }
     } catch (error) {
       log("CHAT ERROR: $error");
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to get answer. Please try again.")),
+        const SnackBar(content: Text("Failed to get answer. Please try again.")),
       );
     } finally {
       if (mounted) {

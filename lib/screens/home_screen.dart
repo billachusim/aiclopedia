@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:developer';
 import 'dart:ui';
-import 'package:AiClopedia/app_state.dart';
-import 'package:AiClopedia/screens/settings_page.dart';
-import 'package:AiClopedia/services/hidden_posts_service.dart';
+import 'package:ai_clopedia/app_state.dart';
+import 'package:ai_clopedia/screens/settings_page.dart';
+import 'package:ai_clopedia/services/hidden_posts_service.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -13,15 +13,15 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:AiClopedia/screens/all_activities.dart';
-import 'package:AiClopedia/screens/question_details.dart';
-import 'package:AiClopedia/screens/chat_screen.dart';
-import 'package:AiClopedia/models/questionModel.dart';
-import 'package:AiClopedia/models/userModel.dart';
-import 'package:AiClopedia/services/ad_state.dart';
-import 'package:AiClopedia/services/firebaseServices.dart';
-import 'package:AiClopedia/widgets/question_widget.dart';
-import 'package:AiClopedia/screens/login/login.dart';
+import 'package:ai_clopedia/screens/all_activities.dart';
+import 'package:ai_clopedia/screens/question_details.dart';
+import 'package:ai_clopedia/screens/chat_screen.dart';
+import 'package:ai_clopedia/models/question_model.dart';
+import 'package:ai_clopedia/models/user_model.dart';
+import 'package:ai_clopedia/services/ad_state.dart';
+import 'package:ai_clopedia/services/firebase_services.dart';
+import 'package:ai_clopedia/widgets/question_widget.dart';
+import 'package:ai_clopedia/screens/login/login.dart';
 
 import '../app_theme.dart';
 import '../constants/scrollable_page.dart';
@@ -31,7 +31,7 @@ import 'credits_screen.dart';
 
 
 class Homepage extends ScrollablePage {
-  const Homepage({Key? key}) : super(key: key);
+  const Homepage({super.key});
 
   @override
   ScrollablePageState<Homepage> createState() => _HomepageState();
@@ -253,6 +253,7 @@ class _HomepageState extends ScrollablePageState<Homepage> {
     if (!hasConsent && mounted) {
       _showAiConsentDialog();
     } else {
+      if (!mounted) return;
       Navigator.push(context, MaterialPageRoute(builder: (context) => const ChatScreen()));
     }
   }
@@ -442,13 +443,13 @@ class _HomepageState extends ScrollablePageState<Homepage> {
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(20),
                                     gradient: LinearGradient(
-                                      colors: [AppTheme.accentPink, AppTheme.accentPink.withOpacity(0.8)],
+                                      colors: [AppTheme.accentPink, AppTheme.accentPink.withValues(alpha: 0.8)],
                                       begin: Alignment.topLeft,
                                       end: Alignment.bottomRight,
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: AppTheme.accentPink.withOpacity(0.3),
+                                        color: AppTheme.accentPink.withValues(alpha: 0.3),
                                         blurRadius: 12,
                                         offset: const Offset(0, 6),
                                       ),
@@ -483,7 +484,7 @@ class _HomepageState extends ScrollablePageState<Homepage> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 20.0),
                               decoration: BoxDecoration(
-                                border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.1))),
+                                border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.1))),
                               ),
                               child: Align(
                                 alignment: Alignment.centerLeft,
@@ -569,9 +570,9 @@ class _HomepageState extends ScrollablePageState<Homepage> {
 
 class _SliverHeaderDelegate extends SliverPersistentHeaderDelegate {
   final Widget child;
-  final double height;
+  static const double _headerHeight = 48.0;
 
-  _SliverHeaderDelegate({required this.child, this.height = 48.0});
+  _SliverHeaderDelegate({required this.child});
 
   @override
   Widget build(
@@ -583,10 +584,10 @@ class _SliverHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  double get maxExtent => height;
+  double get maxExtent => _headerHeight;
 
   @override
-  double get minExtent => height;
+  double get minExtent => _headerHeight;
 
   @override
   bool shouldRebuild(SliverPersistentHeaderDelegate oldDelegate) {
