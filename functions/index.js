@@ -62,7 +62,7 @@ const crypto = require("crypto");
 if (!admin.apps.length) admin.initializeApp();
 
 async function saveImageToStorage(base64Data, mimeType) {
-    const bucket = admin.storage().bucket();
+    const bucket = admin.storage().bucket("chat-gpt-for-students.firebasestorage.app");
     const token = crypto.randomUUID();
     const ext = mimeType === "image/jpeg" ? "jpg" : "png";
     const path = `generated_images/${Date.now()}_${token}.${ext}`;
