@@ -23,7 +23,7 @@ class ChatProvider with ChangeNotifier {
       chatList.addAll(answers);
     } catch (e) {
       chatList.add(ChatModel(
-        msg: "⚠️ Error: ${e.toString()}",
+        msg: "⚠️ Sorry, I couldn't answer right now. Please try again in a moment.",
         chatIndex: 1,
       ));
       rethrow; // Rethrow to let the UI know it failed for credit deduction

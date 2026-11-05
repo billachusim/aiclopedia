@@ -47,7 +47,7 @@ class AnswerEngine {
 
       return generated;
     } catch (e) {
-      return "⚠️ Failed to generate answer. ${e.toString()}";
+      return "⚠️ Sorry, I couldn't generate an answer right now. Please try again in a moment.";
     }
   }
 

@@ -1,0 +1,6 @@
+- `[ ]` Finalize App Store Metadata (Title, Subtitle, Keywords)
+- `[ ]` Finalize Full App Description (SEO-optimized)
+- `[ ]` Finalize Play Store Metadata (Short Description)
+- `[ ]` Detail Screenshot Concepts and Captions
+- `[ ]` Create `ASO_METADATA.md` in project root for easy copying
+- `[ ]` Create Final Walkthrough

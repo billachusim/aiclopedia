@@ -403,7 +403,7 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
       log("FIREBASE ERROR: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("An error occurred: ${e.toString()}")),
+          const SnackBar(content: Text("Something went wrong. Please try again in a moment.")),
         );
       }
     } finally {

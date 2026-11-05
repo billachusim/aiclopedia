@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:ai_clopedia/models/user_model.dart';
 import 'package:ai_clopedia/paywall_overlay.dart';
 import 'package:flutter/material.dart';
@@ -458,9 +459,16 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
         }
       }
     } catch (e) {
+      debugPrint('Image generation failed: $e');
+      String message = "We couldn't create that image right now. Please try again in a moment.";
+      if (e is FirebaseFunctionsException &&
+          (e.code == 'failed-precondition' || e.code == 'invalid-argument') &&
+          (e.message ?? '').isNotEmpty) {
+        message = e.message!;
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("An error occurred: ${e.toString()}")),
+          SnackBar(content: Text(message)),
         );
       }
     } finally {
