@@ -66,13 +66,23 @@ async function saveImageToStorage(base64Data, mimeType) {
     const token = crypto.randomUUID();
     const ext = mimeType === "image/jpeg" ? "jpg" : "png";
     const path = `generated_images/${Date.now()}_${token}.${ext}`;
-    await bucket.file(path).save(Buffer.from(base64Data, "base64"), {
+    const file = bucket.file(path);
+    await file.save(Buffer.from(base64Data, "base64"), {
         metadata: {
             contentType: mimeType,
+            cacheControl: "public, max-age=31536000",
             metadata: { firebaseStorageDownloadTokens: token },
         },
     });
-    return `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${token}`;
+    // Generated images are shareable content, so serve them as public objects.
+    // This avoids depending on the Firebase Storage service agent for token URLs.
+    try {
+        await file.makePublic();
+        return `https://storage.googleapis.com/${bucket.name}/${path}`;
+    } catch (e) {
+        console.error("makePublic failed, falling back to token URL:", e.message);
+        return `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${token}`;
+    }
 }
 
 async function generateWithGemini(apiKey, prompt) {
