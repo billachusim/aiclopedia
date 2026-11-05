@@ -24,7 +24,7 @@ exports.getAIResponse = onCall({ secrets: [GEMINI_API_KEY, OPENAI_API_KEY] }, as
 
         // Cost optimization: Use Lite model for simple questions (under 100 chars)
         const isSimple = prompt.length < 100;
-        const modelName = isSimple ? "gemini-2.5-flash-lite" : "gemini-2.5-flash";
+        const modelName = isSimple ? "gemini-3.5-flash-lite" : "gemini-3.5-flash";
 
         const model = genAI.getGenerativeModel({ model: modelName });
         const result = await model.generateContent(prompt);
@@ -77,7 +77,7 @@ async function saveImageToStorage(base64Data, mimeType) {
 
 async function generateWithGemini(apiKey, prompt) {
     const res = await fetch(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent",
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image:generateContent",
         {
             method: "POST",
             headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
