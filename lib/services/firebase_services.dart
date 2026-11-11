@@ -542,6 +542,38 @@ class FirebaseServices extends ChangeNotifier {
     }
   }
 
+  /// Reports offensive or harmful AI-generated content (chat reply, answer
+  /// or image) so it can be reviewed and used to tune content filtering.
+  /// Required by Google Play's AI-Generated Content policy.
+  Future<bool> reportAiContent({
+    required String contentType, // chat_reply, answer, image
+    required String content,
+    required String reason,
+    String? prompt,
+    String? questionId,
+    String? details,
+  }) async {
+    try {
+      await _firebaseFirestore.collection('reports').add({
+        'type': 'ai_content',
+        'contentType': contentType,
+        'content': content.length > 5000 ? content.substring(0, 5000) : content,
+        'prompt': prompt,
+        'questionId': questionId,
+        'reason': reason,
+        'details': details,
+        'reporterId': currentUser?.uid,
+        'timestamp': FieldValue.serverTimestamp(),
+        'status': 'pending', // pending, reviewed
+      });
+      logger.d('Reported AI content ($contentType)');
+      return true;
+    } catch (e) {
+      logger.e('Error reporting AI content: $e');
+      return false;
+    }
+  }
+
   /// Blocks a user, preventing their content from being seen.
   Future<bool> blockUser(String userIdToBlock) async {
     final currentUserId = currentUser?.uid;

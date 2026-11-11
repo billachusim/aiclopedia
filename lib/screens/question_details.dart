@@ -22,6 +22,7 @@ import '../services/ad_state.dart';
 import '../services/answer_engine.dart';
 import '../services/firebase_services.dart';
 import '../services/image_engine.dart';
+import '../widgets/report_ai_content.dart';
 
 class QuestionDetails extends StatefulWidget {
   final Question question;
@@ -440,6 +441,18 @@ class _QuestionDetailsState extends State<QuestionDetails> {
                 style: theme.textTheme.bodyLarge?.copyWith(height: 1.6, fontSize: 16),
               ),
             ),
+            if (!_isLoadingAnswer && _answer.isNotEmpty)
+              Align(
+                alignment: Alignment.centerRight,
+                child: ReportAiContentButton(
+                  contentType: 'answer',
+                  content: _answer,
+                  prompt: question.question,
+                  questionId: question.questionId,
+                  color: theme.colorScheme.secondary,
+                  withLabel: true,
+                ),
+              ),
             const SizedBox(height: 32.0),
             if (_showImage || _imageUrl.isEmpty)
               Center(
@@ -480,6 +493,17 @@ class _QuestionDetailsState extends State<QuestionDetails> {
                   fit: BoxFit.cover,
                   placeholder: (_, __) => _buildLoadingIndicator(theme),
                   errorWidget: (_, __, ___) => const Text('Could not load image.'),
+                ),
+              ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: ReportAiContentButton(
+                  contentType: 'image',
+                  content: _imageUrl,
+                  prompt: question.question,
+                  questionId: question.questionId,
+                  color: theme.colorScheme.secondary,
+                  withLabel: true,
                 ),
               ),
             ],
