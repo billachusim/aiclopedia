@@ -3,12 +3,15 @@ import 'package:ai_clopedia/constants/constants.dart';
 import 'package:ai_clopedia/services/assets_manager.dart';
 import 'package:flutter/material.dart';
 
+import 'report_ai_content.dart';
 import 'text_widget.dart';
 
 class ChatWidget extends StatelessWidget {
-  const ChatWidget({super.key, required this.msg, required this.chatIndex});
+  const ChatWidget(
+      {super.key, required this.msg, required this.chatIndex, this.prompt});
 
   final String msg;
+  final String? prompt;
   final int chatIndex;
   @override
   Widget build(BuildContext context) {
@@ -55,22 +58,11 @@ class ChatWidget extends StatelessWidget {
                 ),
                 chatIndex == 0
                     ? const SizedBox.shrink()
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Icon(
-                            Icons.thumb_up_alt_outlined,
-                            color: Colors.white,
-                          ),
-                          SizedBox(
-                            width: 5,
-                          ),
-                          Icon(
-                            Icons.thumb_down_alt_outlined,
-                            color: Colors.white,
-                          )
-                        ],
+                    : ReportAiContentButton(
+                        contentType: 'chat_reply',
+                        content: msg,
+                        prompt: prompt,
+                        color: Colors.white,
                       ),
               ],
             ),

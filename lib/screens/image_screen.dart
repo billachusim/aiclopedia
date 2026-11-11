@@ -11,6 +11,7 @@ import '../constants/scrollable_page.dart';
 import '../services/ad_state.dart';
 import '../services/firebase_services.dart';
 import '../services/image_engine.dart';
+import '../widgets/report_ai_content.dart';
 
 class ImageScreen extends ScrollablePage {
   const ImageScreen({super.key});
@@ -240,7 +241,9 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
 
   Widget _buildImageContent(ThemeData theme) {
     if (generatedImageUrl.isNotEmpty) {
-      return ClipRRect(
+      return Stack(
+        children: [
+          Positioned.fill(child: ClipRRect(
         borderRadius: BorderRadius.circular(15),
         child: Image.network(
           generatedImageUrl,
@@ -262,6 +265,22 @@ class _ImageScreenState extends ScrollablePageState<ImageScreen> {
             );
           },
         ),
+      )),
+          Positioned(
+            top: 8,
+            right: 8,
+            child: Material(
+              color: Colors.black54,
+              shape: const CircleBorder(),
+              child: ReportAiContentButton(
+                contentType: 'image',
+                content: generatedImageUrl,
+                prompt: textEditingController.text.trim(),
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
       );
     } else {
       return Center(

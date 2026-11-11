@@ -256,9 +256,14 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
                     controller: _listScrollController,
                     itemCount: chatProvider.getChatList.length,
                     itemBuilder: (context, index) {
+                      final chats = chatProvider.getChatList;
+                      final prev = index > 0 ? chats[index - 1] : null;
                       return ChatWidget(
-                        msg: chatProvider.getChatList[index].msg,
-                        chatIndex: chatProvider.getChatList[index].chatIndex,
+                        msg: chats[index].msg,
+                        chatIndex: chats[index].chatIndex,
+                        prompt: prev != null && prev.chatIndex == 0
+                            ? prev.msg
+                            : null,
                       );
                     }),
               ),
