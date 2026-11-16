@@ -11,6 +11,11 @@ import 'package:timeago/timeago.dart' as timeago;
 
 import '../app_theme.dart';
 import '../models/question_model.dart';
+import '../services/answer_engine.dart';
+import '../services/answer_utils.dart';
+import '../services/review_service.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'shimmer_lines.dart';
 
 class QuestionWidget extends StatefulWidget {
   final Question question;
@@ -35,12 +40,71 @@ class _QuestionWidgetState extends State<QuestionWidget> {
   // State
   late int _thumbsUpCount;
   late int _thumbsDownCount;
+  String? _answer;
+  bool _loadingAnswer = false;
 
   @override
   void initState() {
     super.initState();
     _thumbsUpCount = widget.question.thumbsUpCount;
     _thumbsDownCount = widget.question.thumbsDownCount;
+    _loadCachedAnswer();
+  }
+
+  @override
+  void didUpdateWidget(covariant QuestionWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.question.questionId != widget.question.questionId ||
+        oldWidget.question.answer != widget.question.answer) {
+      _thumbsUpCount = widget.question.thumbsUpCount;
+      _thumbsDownCount = widget.question.thumbsDownCount;
+      _loadCachedAnswer();
+    }
+  }
+
+  /// Shows a saved answer from memory, the device or Firestore. Never calls
+  /// the AI from the feed; that only happens on the details page.
+  void _loadCachedAnswer() {
+    final q = widget.question;
+    if (AnswerUtils.isUsable(q.answer)) {
+      _answer = q.answer;
+      AnswerEngine.instance.remember(q.questionId, q.answer);
+      return;
+    }
+    final peeked = AnswerEngine.instance.peek(q.questionId);
+    if (peeked != null) {
+      _answer = peeked;
+      return;
+    }
+    _answer = null;
+    _loadingAnswer = true;
+    AnswerEngine.instance
+        .cached(questionId: q.questionId)
+        .then((value) {
+      if (!mounted) return;
+      setState(() {
+        _answer = value;
+        _loadingAnswer = false;
+      });
+    });
+  }
+
+  void _openDetails() {
+    final q = widget.question;
+    final answer = _answer;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => QuestionDetails(
+          question: answer == null ? q : q.copyWith(answer: answer),
+        ),
+      ),
+    ).then((_) {
+      // The details page may have fetched or generated the answer.
+      if (mounted && _answer == null) {
+        setState(_loadCachedAnswer);
+      }
+    });
   }
 
   // --- START: MODERATION ACTION HANDLERS ---
@@ -118,6 +182,7 @@ class _QuestionWidgetState extends State<QuestionWidget> {
   void _incrementThumbsUp() {
     setState(() => _thumbsUpCount++);
     _updateCount('thumbsUpCount');
+    ReviewService.instance.recordThumbsUp();
   }
 
   void _incrementThumbsDown() {
@@ -130,14 +195,7 @@ class _QuestionWidgetState extends State<QuestionWidget> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
       child: GestureDetector(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => QuestionDetails(question: widget.question),
-            ),
-          );
-        },
+        onTap: _openDetails,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
           child: BackdropFilter(
@@ -198,23 +256,20 @@ class _QuestionWidgetState extends State<QuestionWidget> {
                   color: textColor,
                 ),
               ),
-              Row(
-                children: [
-                  Icon(Icons.location_on_outlined, size: 12, color: secondaryTextColor),
-                  const SizedBox(width: 4),
-                  Text(
-                    widget.question.city,
-                    style: TextStyle(fontSize: 12, color: secondaryTextColor),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(Icons.person_outline, size: 12, color: secondaryTextColor),
-                  const SizedBox(width: 4),
-                  Text(
-                    widget.question.gender,
-                    style: TextStyle(fontSize: 12, color: secondaryTextColor),
-                  ),
-                ],
-              ),
+              if (widget.question.city.trim().isNotEmpty)
+                Row(
+                  children: [
+                    Icon(Icons.location_on_outlined, size: 12, color: secondaryTextColor),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        widget.question.city,
+                        style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
               Text(
                 timeago.format(widget.question.timestamp),
                 style: TextStyle(fontSize: 11, color: secondaryTextColor.withValues(alpha: 0.6)),
@@ -263,7 +318,6 @@ class _QuestionWidgetState extends State<QuestionWidget> {
 
   Widget _buildBody(BuildContext context) {
     final theme = Theme.of(context);
-    final secondaryTextColor = theme.colorScheme.onSurface.withValues(alpha: 0.7);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -305,48 +359,88 @@ class _QuestionWidgetState extends State<QuestionWidget> {
           maxLines: 3,
           overflow: TextOverflow.ellipsis,
         ),
-        if (widget.question.answer.isNotEmpty) ...[
+        const SizedBox(height: 12),
+        _buildAnswerPreview(context),
+        if (AnswerUtils.isUsableImageUrl(widget.question.imageUrl)) ...[
           const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: theme.colorScheme.onSurface.withValues(alpha: 0.1)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.auto_awesome, size: 14, color: AppTheme.primaryGreen),
-                    const SizedBox(width: 6),
-                    Text(
-                      "AI ANSWER",
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: secondaryTextColor,
-                      ),
-                    ),
-                  ],
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
+              child: CachedNetworkImage(
+                imageUrl: widget.question.imageUrl,
+                fit: BoxFit.cover,
+                placeholder: (_, __) => Container(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  widget.question.answer,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: secondaryTextColor,
-                    fontStyle: FontStyle.italic,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+                errorWidget: (_, __, ___) => const SizedBox.shrink(),
+              ),
             ),
           ),
         ],
       ],
+    );
+  }
+
+  Widget _buildAnswerPreview(BuildContext context) {
+    final theme = Theme.of(context);
+    final secondaryTextColor = theme.colorScheme.onSurface.withValues(alpha: 0.75);
+    final answer = _answer;
+
+    Widget content;
+    if (answer != null) {
+      content = Text(
+        AnswerUtils.plainText(answer),
+        style: TextStyle(fontSize: 14, height: 1.4, color: secondaryTextColor),
+        maxLines: 3,
+        overflow: TextOverflow.ellipsis,
+      );
+    } else if (_loadingAnswer) {
+      content = const ShimmerLines(lines: 2);
+    } else {
+      content = Row(
+        children: [
+          Expanded(
+            child: Text(
+              "Tap to see the AI answer",
+              style: TextStyle(fontSize: 14, color: secondaryTextColor),
+            ),
+          ),
+          Icon(Icons.chevron_right, size: 18, color: secondaryTextColor),
+        ],
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.colorScheme.onSurface.withValues(alpha: 0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.auto_awesome, size: 14, color: AppTheme.primaryGreen),
+              const SizedBox(width: 6),
+              Text(
+                "AI ANSWER",
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                  color: secondaryTextColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          content,
+        ],
+      ),
     );
   }
 

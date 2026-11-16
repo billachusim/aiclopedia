@@ -12,7 +12,8 @@ class ChatProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> sendMessageAndGetAnswers({
+  /// Sends [msg] to the AI and returns the reply text.
+  Future<String> sendMessageAndGetAnswers({
     required String msg,
   }) async {
     try {
@@ -21,6 +22,7 @@ class ChatProvider with ChangeNotifier {
       );
 
       chatList.addAll(answers);
+      return answers.first.msg;
     } catch (e) {
       chatList.add(ChatModel(
         msg: "⚠️ Sorry, I couldn't answer right now. Please try again in a moment.",

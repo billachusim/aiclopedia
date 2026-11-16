@@ -1,23 +1,52 @@
 const { onRequest, onCall, HttpsError } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
+const { onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const OpenAI = require("openai");
+const admin = require("firebase-admin");
+if (!admin.apps.length) admin.initializeApp();
 
 // Define Secrets
 const GEMINI_API_KEY = defineSecret("GEMINI_API_KEY");
 const OPENAI_API_KEY = defineSecret("OPENAI_API_KEY");
 
+const SYSTEM_INSTRUCTION = [
+    "You are Ai Clopedia, a friendly and accurate encyclopedia assistant.",
+    "Answer the user's question directly in the first sentence, then add helpful detail.",
+    "Format with Markdown: short paragraphs, **bold** key terms, and bullet points or",
+    "numbered steps where they help. Use a heading only for long answers.",
+    "Keep answers under about 350 words unless the user asks for more.",
+    "Never say you are 'an AI language model'. If something is uncertain, say so briefly.",
+].join(" ");
+
+// Text that older app versions saved as an "answer" but is not a real answer.
+const BAD_ANSWER_MARKERS = [
+    "tap open to load answer",
+    "ai model is currently unavailable",
+    "failed to generate answer",
+    "couldn't generate an answer",
+    "couldn't answer right now",
+    "firebase_functions/",
+    "ai services unavailable",
+    "ai quota exhausted",
+    "ai service error",
+    "unable to load",
+];
+
+function isUsableAnswer(answer) {
+    if (typeof answer !== "string") return false;
+    const text = answer.trim();
+    if (text.length < 2) return false;
+    const lower = text.toLowerCase();
+    if (lower.startsWith("⚠️") || lower.startsWith("error:")) return false;
+    return !BAD_ANSWER_MARKERS.some((m) => lower.includes(m));
+}
+
 /**
- * Handles AI Text Generation requests.
- * Tries Gemini first, falls back to OpenAI.
+ * Generates an answer. Tries Gemini first, falls back to OpenAI.
+ * Throws an HttpsError when both fail.
  */
-exports.getAIResponse = onCall({ secrets: [GEMINI_API_KEY, OPENAI_API_KEY] }, async (request) => {
-    const prompt = request.data.prompt;
-
-    if (!prompt) {
-        throw new HttpsError("invalid-argument", "Prompt is required");
-    }
-
+async function generateAnswerText(prompt) {
     // 1. Try Gemini
     try {
         const genAI = new GoogleGenerativeAI(GEMINI_API_KEY.value());
@@ -26,9 +55,11 @@ exports.getAIResponse = onCall({ secrets: [GEMINI_API_KEY, OPENAI_API_KEY] }, as
         const isSimple = prompt.length < 100;
         const modelName = isSimple ? "gemini-3.5-flash-lite" : "gemini-3.5-flash";
 
-        const model = genAI.getGenerativeModel({ model: modelName });
+        const model = genAI.getGenerativeModel({ model: modelName, systemInstruction: SYSTEM_INSTRUCTION });
         const result = await model.generateContent(prompt);
-        return { text: result.response.text(), model: modelName };
+        const text = result.response.text();
+        if (text && text.trim()) return { text, model: modelName };
+        throw new Error("Gemini returned an empty answer");
     } catch (e) {
         console.error("Gemini failed, falling back to OpenAI:", e);
     }
@@ -38,18 +69,74 @@ exports.getAIResponse = onCall({ secrets: [GEMINI_API_KEY, OPENAI_API_KEY] }, as
         const openai = new OpenAI({ apiKey: OPENAI_API_KEY.value() });
         const completion = await openai.chat.completions.create({
             model: "gpt-4o-mini",
-            messages: [{ role: "user", content: prompt }],
+            messages: [
+                { role: "system", content: SYSTEM_INSTRUCTION },
+                { role: "user", content: prompt },
+            ],
         });
-        return { text: completion.choices[0].message.content };
+        return { text: completion.choices[0].message.content, model: "gpt-4o-mini" };
     } catch (e) {
         console.error("OpenAI also failed:", e);
-        // If both fail, throw a descriptive HttpsError
         if (e.code === 'insufficient_quota' || e.code === 'credit_balance_exhausted') {
             throw new HttpsError("unavailable", "AI quota exhausted. Please try again later.");
         }
         throw new HttpsError("internal", "AI services unavailable");
     }
+}
+
+/**
+ * Handles AI Text Generation requests from signed-in app users.
+ */
+exports.getAIResponse = onCall({ secrets: [GEMINI_API_KEY, OPENAI_API_KEY] }, async (request) => {
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "Please sign in to ask AiClopedia.");
+    }
+    const prompt = (request.data && request.data.prompt || "").toString().trim();
+
+    if (!prompt) {
+        throw new HttpsError("invalid-argument", "Prompt is required");
+    }
+    if (prompt.length > 4000) {
+        throw new HttpsError("invalid-argument", "That question is too long. Please shorten it.");
+    }
+
+    return generateAnswerText(prompt);
 });
+
+/**
+ * Makes sure every saved question ends up with a real answer, so the feed
+ * and the details page can show it from Firestore without calling the AI.
+ * - On create: fills the answer if the app didn't save one.
+ * - On update: only when `answerRefresh` changes (set by the one-off cleanup
+ *   script), so votes and other edits never trigger AI calls.
+ */
+exports.fillMissingAnswer = onDocumentWritten(
+    { document: "questions/{questionId}", secrets: [GEMINI_API_KEY, OPENAI_API_KEY], timeoutSeconds: 120 },
+    async (event) => {
+        const after = event.data && event.data.after && event.data.after.exists ? event.data.after.data() : null;
+        if (!after) return;
+        const before = event.data.before && event.data.before.exists ? event.data.before.data() : null;
+
+        const question = (after.question || "").toString().trim();
+        if (!question || isUsableAnswer(after.answer)) return;
+
+        const isCreate = !before;
+        const refreshRequested = before && String(before.answerRefresh || "") !== String(after.answerRefresh || "");
+        if (!isCreate && !refreshRequested) return;
+
+        try {
+            const { text, model } = await generateAnswerText(question.slice(0, 4000));
+            if (!isUsableAnswer(text)) throw new Error("Generated text was not usable");
+            await event.data.after.ref.set(
+                { answer: text, answerModel: model || null, answerError: admin.firestore.FieldValue.delete() },
+                { merge: true }
+            );
+        } catch (e) {
+            console.error(`fillMissingAnswer failed for ${event.params.questionId}:`, e.message || e);
+            await event.data.after.ref.set({ answerError: true }, { merge: true });
+        }
+    }
+);
 
 /**
  * Handles AI Image Generation requests.
@@ -57,9 +144,7 @@ exports.getAIResponse = onCall({ secrets: [GEMINI_API_KEY, OPENAI_API_KEY] }, as
  * The image is saved to Firebase Storage so the returned URL never expires
  * (OpenAI URLs expire after ~1 hour, which broke cached images).
  */
-const admin = require("firebase-admin");
 const crypto = require("crypto");
-if (!admin.apps.length) admin.initializeApp();
 
 async function saveImageToStorage(base64Data, mimeType) {
     const bucket = admin.storage().bucket("chat-gpt-for-students.appspot.com");

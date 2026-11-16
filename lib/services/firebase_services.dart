@@ -401,7 +401,7 @@ class FirebaseServices extends ChangeNotifier {
 
   /// END: DATA SHARING CONSENT
 
-  Future<bool> saveQuestion(UserModel user, String question, {bool isPublic = true}) async {
+  Future<bool> saveQuestion(UserModel user, String question, {bool isPublic = true, String answer = ''}) async {
     if (!user.hasConsentedToDataSharing) {
       logger.i('User has not consented to data sharing. Question not saved.');
       return false; // Indicate that saving was blocked by lack of consent.
@@ -421,7 +421,7 @@ class FirebaseServices extends ChangeNotifier {
         'city': city,
         'gender': gender,
         'question': question,
-        'answer': '',
+        'answer': answer,
         'imageUrl': '',
         'questionId': questionId,
         'isFeatured': false,
@@ -451,7 +451,7 @@ class FirebaseServices extends ChangeNotifier {
   Future<void> saveAnswer(String questionId, String answer) async {
     final String newQuestionId = questionId;
     final String newAnswer = answer;
-    FirebaseFirestore.instance
+    await FirebaseFirestore.instance
         .collection('questions')
         .doc(newQuestionId)
         .set(
