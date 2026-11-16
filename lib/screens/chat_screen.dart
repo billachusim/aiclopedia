@@ -15,10 +15,16 @@ import '../models/user_model.dart';
 import '../paywall_overlay.dart';
 import '../services/ad_state.dart';
 import '../services/firebase_services.dart';
+import '../services/interstitial_gate.dart';
+import '../services/review_service.dart';
 
 class ChatScreen extends ScrollablePage {
   final String? initialPrompt;
-  const ChatScreen({super.key, this.initialPrompt});
+
+  /// When false, [initialPrompt] is only typed into the box for the user to
+  /// finish (used by "Ask a follow-up").
+  final bool sendInitialPrompt;
+  const ChatScreen({super.key, this.initialPrompt, this.sendInitialPrompt = true});
 
   @override
   ScrollablePageState<ChatScreen> createState() => _ChatScreenState();
@@ -53,8 +59,10 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAiConsent();
-      if (widget.initialPrompt != null) {
+      if (widget.initialPrompt != null && widget.sendInitialPrompt) {
         _handleInitialPrompt();
+      } else if (widget.initialPrompt != null) {
+        focusNode.requestFocus();
       }
     });
   }
@@ -152,7 +160,7 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
 
   @override
   void dispose() {
-    if (_hasPerformedSearch) {
+    if (_hasPerformedSearch && InterstitialGate.instance.shouldShow()) {
       _showInterstitialAd();
     }
     _listScrollController.dispose();
@@ -391,19 +399,23 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
         return;
       }
 
-      if (_shouldSave) {
+      final answer = await sendMessageFCT(
+          chatProvider: chatProvider, user: user, creditCost: creditCost);
+
+      // Save the question together with its answer, so every card and the
+      // details page can show it straight away without calling the AI again.
+      if (_shouldSave && answer != null) {
         if (question.length < 20) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Question too short (<20 chars). It won't be saved to history.")),
+              const SnackBar(content: Text("Short questions (under 20 characters) aren't saved to your history.")),
             );
           }
         } else {
-          await firebaseServices.saveQuestion(user, question, isPublic: _isPublic);
+          await firebaseServices.saveQuestion(user, question,
+              isPublic: _isPublic, answer: answer);
         }
       }
-      
-      await sendMessageFCT(chatProvider: chatProvider, user: user, creditCost: creditCost);
     } catch (e) {
       log("FIREBASE ERROR: $e");
       if (mounted) {
@@ -449,9 +461,9 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
     });
   }
 
-  Future<void> sendMessageFCT({required ChatProvider chatProvider, UserModel? user, int? creditCost}) async {
-    if (_isTyping) return;
-    if (textEditingController.text.trim().isEmpty) return;
+  Future<String?> sendMessageFCT({required ChatProvider chatProvider, UserModel? user, int? creditCost}) async {
+    if (_isTyping) return null;
+    if (textEditingController.text.trim().isEmpty) return null;
 
     final msg = textEditingController.text.trim();
 
@@ -465,19 +477,22 @@ class _ChatScreenState extends ScrollablePageState<ChatScreen> {
     scrollListToEND();
 
     try {
-      await chatProvider.sendMessageAndGetAnswers(msg: msg);
+      final answer = await chatProvider.sendMessageAndGetAnswers(msg: msg);
       _hasPerformedSearch = true;
-      
+      ReviewService.instance.recordGoodAnswer();
+
       // Success! Now deduct credits if not premium
       if (user != null && !user.isPremium && creditCost != null) {
         await firebaseServices.updateUserCredits(user.userId, -creditCost);
       }
+      return answer;
     } catch (error) {
       log("CHAT ERROR: $error");
-      if (!mounted) return;
+      if (!mounted) return null;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Failed to get answer. Please try again.")),
       );
+      return null;
     } finally {
       if (mounted) {
         setState(() {

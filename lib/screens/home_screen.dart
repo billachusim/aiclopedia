@@ -12,6 +12,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:rxdart/rxdart.dart';
 
 import 'package:ai_clopedia/screens/all_activities.dart';
 import 'package:ai_clopedia/screens/chat_screen.dart';
@@ -179,25 +180,47 @@ class _HomepageState extends ScrollablePageState<Homepage> {
     // 2. Fetch locally hidden post IDs.
     final hiddenPostIds = await hiddenPostsService.getHiddenPostIds();
 
-    // 3. Build the Firestore query
-    Query query = FirebaseFirestore.instance
+    bool keep(Question q) =>
+        q.isPublic &&
+        q.hasUsableAnswer &&
+        !hiddenPostIds.contains(q.questionId) &&
+        !blockedUserIds.contains(q.userId);
+
+    List<Question> parse(QuerySnapshot snap) => snap.docs
+        .map((doc) => Question.fromJson(doc.data() as Map<String, dynamic>))
+        .where(keep)
+        .toList();
+
+    // 3. Featured questions plus the newest public questions that already
+    // have answers, so the feed stays fresh instead of showing 2023 posts.
+    final featured = FirebaseFirestore.instance
         .collection('questions')
         .where('isFeatured', isEqualTo: true)
         .orderBy('timestamp', descending: true)
-        .limit(50);
+        .limit(50)
+        .snapshots()
+        .map(parse);
 
-    // 4. Listen to the stream and apply client-side filtering
-    await for (final querySnapshot in query.snapshots()) {
-      final questions = querySnapshot.docs
-          .map((doc) => Question.fromJson(doc.data() as Map<String, dynamic>))
-          .where((question) {
-        // Client-side filter for locally hidden posts, blocked users, and privacy.
-        final isHidden = hiddenPostIds.contains(question.questionId);
-        final isBlocked = blockedUserIds.contains(question.userId);
-        return !isHidden && !isBlocked && question.isPublic;
-      }).toList();
-      yield questions;
-    }
+    final recent = FirebaseFirestore.instance
+        .collection('questions')
+        .orderBy('timestamp', descending: true)
+        .limit(150)
+        .snapshots()
+        .map(parse);
+
+    yield* Rx.combineLatest2<List<Question>, List<Question>, List<Question>>(
+      featured.startWith(const []),
+      recent.startWith(const []),
+      (f, r) {
+        final byId = <String, Question>{};
+        for (final q in [...f, ...r]) {
+          byId[q.questionId] = q;
+        }
+        final merged = byId.values.toList()
+          ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+        return merged.take(60).toList();
+      },
+    ).skip(1); // skip the empty seed so the loader shows until data arrives
   }
 
   void _onAskAiPressed() async {
@@ -508,7 +531,27 @@ class _HomepageState extends ScrollablePageState<Homepage> {
                               return const SliverFillRemaining(child: Center(child: CircularProgressIndicator()));
                             }
                             if (snapshot.hasError) {
-                              return SliverToBoxAdapter(child: Center(child: Text("Error: ${snapshot.error}")));
+                              log("Feed error: ${snapshot.error}");
+                              return SliverToBoxAdapter(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(32.0),
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        "We couldn't load questions right now. Pull down to try again.",
+                                        style: Theme.of(context).textTheme.bodyMedium,
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      TextButton.icon(
+                                        onPressed: _loadQuestionStream,
+                                        icon: const Icon(Icons.refresh_rounded),
+                                        label: const Text('Try again'),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
                             }
                             if (!snapshot.hasData || snapshot.data!.isEmpty) {
                               return SliverToBoxAdapter(
@@ -516,7 +559,9 @@ class _HomepageState extends ScrollablePageState<Homepage> {
                                   child: Padding(
                                     padding: const EdgeInsets.all(32.0),
                                     child: Text(
-                                      'No questions yet. Please log in first ',
+                                      currentUser == null
+                                          ? 'Log in to see what people are asking, and ask your own questions.'
+                                          : 'No questions yet. Tap "Ask AI Anything" to ask the first one!',
                                       style: Theme.of(context).textTheme.bodyMedium,
                                       textAlign: TextAlign.center,
                                     ),

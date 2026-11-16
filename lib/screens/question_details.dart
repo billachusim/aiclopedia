@@ -5,7 +5,6 @@ import 'package:ai_clopedia/app_state.dart';
 import 'package:ai_clopedia/services/hidden_posts_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:ai_clopedia/models/question_model.dart';
 import 'package:flutter/material.dart';
@@ -13,13 +12,22 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timeago/timeago.dart' as timeago;
-import 'package:url_launcher/url_launcher.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../app_theme.dart';
 import '../models/user_model.dart';
 import '../paywall_overlay.dart';
 import '../services/ad_state.dart';
+import '../constants/store_links.dart';
 import '../services/answer_engine.dart';
+import '../services/answer_utils.dart';
+import '../services/interstitial_gate.dart';
+import '../services/review_service.dart';
+import '../widgets/markdown_answer.dart';
+import '../widgets/shimmer_lines.dart';
+import 'chat_screen.dart';
 import '../services/firebase_services.dart';
 import '../services/image_engine.dart';
 import '../widgets/report_ai_content.dart';
@@ -45,7 +53,10 @@ class _QuestionDetailsState extends State<QuestionDetails> {
   late String _answer;
   late String _imageUrl;
   bool _isLoadingAnswer = false;
+  bool _answerFailed = false;
+  bool _needsConsent = false;
   bool _isLoadingImage = false;
+  List<Question> _related = [];
   bool _showImage = false;
 
   InterstitialAd? _interstitialAd;
@@ -61,19 +72,27 @@ class _QuestionDetailsState extends State<QuestionDetails> {
   }
 
   void _initializeContent() {
-    _answer = widget.question.answer;
-    _imageUrl = widget.question.imageUrl;
+    final q = widget.question;
+    _answer = AnswerUtils.isUsable(q.answer)
+        ? q.answer
+        : (AnswerEngine.instance.peek(q.questionId) ?? '');
+    _imageUrl = AnswerUtils.isUsableImageUrl(q.imageUrl) ? q.imageUrl : '';
     _showImage = _imageUrl.isNotEmpty;
 
     if (_answer.isEmpty) {
       _getAnswer();
+    } else {
+      AnswerEngine.instance.remember(q.questionId, _answer);
     }
+    _loadRelated();
   }
 
 
   @override
   void dispose() {
-    _showInterstitialAd();
+    if (InterstitialGate.instance.shouldShow()) {
+      _showInterstitialAd();
+    }
     questionDetailsTopBanner?.dispose();
     questionDetailsBottomBanner?.dispose();
     super.dispose();
@@ -193,40 +212,140 @@ class _QuestionDetailsState extends State<QuestionDetails> {
 
 
   // --- CONTENT GENERATION METHODS ---
-  Future<void> _getAnswer() async {
+  /// Shows a saved answer first (no consent prompt needed to read one).
+  /// Only asks for AI consent when a new answer has to be generated.
+  Future<void> _getAnswer({bool userAsked = false}) async {
     if (_answer.isNotEmpty) return;
 
-    setState(() => _isLoadingAnswer = true);
+    setState(() {
+      _isLoadingAnswer = true;
+      _answerFailed = false;
+      _needsConsent = false;
+    });
 
+    final q = widget.question;
     try {
-      final prefs = await SharedPreferences.getInstance();
-      bool hasConsent = prefs.getBool('ai_consent') ?? false;
+      final cached = await AnswerEngine.instance
+          .cached(questionId: q.questionId, existingAnswer: q.answer);
+      if (cached != null) {
+        if (!mounted) return;
+        setState(() {
+          _answer = cached;
+          _isLoadingAnswer = false;
+        });
+        return;
+      }
 
+      final prefs = await SharedPreferences.getInstance();
+      final hasConsent = prefs.getBool('ai_consent') ?? false;
       if (!hasConsent) {
-        bool? agreed = await _showAiConsentDialog();
+        final agreed = await _showAiConsentDialog();
         if (agreed != true) {
-          if (mounted) setState(() => _isLoadingAnswer = false);
+          if (mounted) {
+            setState(() {
+              _isLoadingAnswer = false;
+              _needsConsent = true;
+            });
+          }
           return;
         }
       }
 
       final resolved = await AnswerEngine.instance.resolve(
-        questionId: widget.question.questionId,
-        question: widget.question.question,
-        existingAnswer: widget.question.answer,
+        questionId: q.questionId,
+        question: q.question,
+        existingAnswer: q.answer,
       );
 
       if (!mounted) return;
-
       setState(() {
         _answer = resolved;
         _isLoadingAnswer = false;
       });
-
+      ReviewService.instance.recordGoodAnswer();
     } catch (e) {
-      if (mounted) setState(() => _isLoadingAnswer = false);
-      _showToast("Failed to load answer.");
+      if (!mounted) return;
+      setState(() {
+        _isLoadingAnswer = false;
+        _answerFailed = true;
+      });
+      if (userAsked) _showToast("Still couldn't load the answer. Please try again shortly.");
     }
+  }
+
+  /// Finds a few related public questions that already have answers.
+  Future<void> _loadRelated() async {
+    try {
+      final words = _keywords(widget.question.question);
+      if (words.isEmpty) return;
+      final snap = await FirebaseFirestore.instance
+          .collection('questions')
+          .orderBy('timestamp', descending: true)
+          .limit(150)
+          .get();
+      final scored = <MapEntry<Question, int>>[];
+      for (final doc in snap.docs) {
+        final q = Question.fromJson(doc.data());
+        if (q.questionId == widget.question.questionId) continue;
+        if (!q.isPublic || !q.hasUsableAnswer) continue;
+        final overlap = _keywords(q.question).intersection(words).length;
+        if (overlap > 0) scored.add(MapEntry(q, overlap));
+      }
+      scored.sort((a, b) => b.value.compareTo(a.value));
+      if (!mounted) return;
+      setState(() => _related = scored.take(3).map((e) => e.key).toList());
+    } catch (_) {
+      // Related questions are a nice-to-have.
+    }
+  }
+
+  static const _stopWords = {
+    'what', 'which', 'when', 'where', 'who', 'whom', 'whose', 'why', 'how',
+    'the', 'and', 'for', 'are', 'was', 'were', 'is', 'can', 'could', 'would',
+    'should', 'does', 'did', 'have', 'has', 'had', 'with', 'from', 'that',
+    'this', 'there', 'their', 'about', 'into', 'your', 'you', 'please', 'tell',
+    'explain', 'give', 'make', 'some', 'many', 'much', 'more', 'most', 'best',
+    'will', 'they', 'them', 'than', 'then', 'also', 'just', 'like', 'between',
+  };
+
+  Set<String> _keywords(String text) {
+    return text
+        .toLowerCase()
+        .split(RegExp(r'[^a-z0-9]+'))
+        .where((w) => w.length > 3 && !_stopWords.contains(w))
+        .toSet();
+  }
+
+  Future<void> _copyAnswer() async {
+    await Clipboard.setData(ClipboardData(text: AnswerUtils.plainText(_answer)));
+    _showToast("Answer copied.");
+  }
+
+  Future<void> _shareAnswer() async {
+    final plain = AnswerUtils.plainText(_answer);
+    final snippet = plain.length > 400 ? '${plain.substring(0, 400).trim()}…' : plain;
+    final text = 'Q: ${widget.question.question}\n\n'
+        '$snippet\n\n'
+        'Get answers to anything with Ai Clopedia: ${StoreLinks.forThisPlatform}';
+    final box = context.findRenderObject() as RenderBox?;
+    await SharePlus.instance.share(ShareParams(
+      text: text,
+      subject: widget.question.question,
+      sharePositionOrigin:
+          box == null ? null : box.localToGlobal(Offset.zero) & box.size,
+    ));
+  }
+
+  void _askFollowUp() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChatScreen(
+          initialPrompt: 'Follow-up on "${widget.question.question}": ',
+          sendInitialPrompt: false,
+        ),
+      ),
+    );
   }
 
   Future<bool?> _showAiConsentDialog() {
@@ -425,34 +544,49 @@ class _QuestionDetailsState extends State<QuestionDetails> {
             const SizedBox(height: 24.0),
             Text('AI ANSWER', style: theme.textTheme.labelMedium?.copyWith(letterSpacing: 1.2, color: theme.colorScheme.secondary)),
             const SizedBox(height: 8.0),
-            _buildGlassCard(
-              context,
-              child: _isLoadingAnswer
-                  ? _buildLoadingIndicator(theme, text: 'Thinking...')
-                  : SelectableLinkify(
-                text: _answer,
-                onOpen: (link) async {
-                  final Uri url = Uri.parse(link.url);
-                  if (await canLaunchUrl(url)) {
-                    await launchUrl(url);
-                  }
-                },
-                linkStyle: TextStyle(color: theme.colorScheme.secondary),
-                style: theme.textTheme.bodyLarge?.copyWith(height: 1.6, fontSize: 16),
-              ),
-            ),
+            _buildGlassCard(context, child: _buildAnswerBody(theme)),
             if (!_isLoadingAnswer && _answer.isNotEmpty)
-              Align(
-                alignment: Alignment.centerRight,
-                child: ReportAiContentButton(
-                  contentType: 'answer',
-                  content: _answer,
-                  prompt: question.question,
-                  questionId: question.questionId,
-                  color: theme.colorScheme.secondary,
-                  withLabel: true,
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Row(
+                  children: [
+                    TextButton.icon(
+                      onPressed: _copyAnswer,
+                      icon: const Icon(Icons.copy_rounded, size: 18),
+                      label: const Text('Copy'),
+                    ),
+                    TextButton.icon(
+                      onPressed: _shareAnswer,
+                      icon: const Icon(Icons.ios_share_rounded, size: 18),
+                      label: const Text('Share'),
+                    ),
+                    const Spacer(),
+                    ReportAiContentButton(
+                      contentType: 'answer',
+                      content: _answer,
+                      prompt: question.question,
+                      questionId: question.questionId,
+                      color: theme.colorScheme.secondary,
+                      withLabel: true,
+                    ),
+                  ],
                 ),
               ),
+            if (!_isLoadingAnswer && _answer.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _askFollowUp,
+                  icon: const Icon(Icons.chat_bubble_outline_rounded),
+                  label: const Text('Ask a follow-up'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 32.0),
             if (_showImage || _imageUrl.isEmpty)
               Center(
@@ -507,6 +641,28 @@ class _QuestionDetailsState extends State<QuestionDetails> {
                 ),
               ),
             ],
+            if (_related.isNotEmpty) ...[
+              const SizedBox(height: 32),
+              Text('RELATED QUESTIONS', style: theme.textTheme.labelMedium?.copyWith(letterSpacing: 1.2, color: theme.colorScheme.secondary)),
+              const SizedBox(height: 8),
+              _buildGlassCard(
+                context,
+                child: Column(
+                  children: [
+                    for (final r in _related)
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(r.question, maxLines: 2, overflow: TextOverflow.ellipsis),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => QuestionDetails(question: r)),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
             const Divider(height: 48),
             _buildMetadata(context, question),
             if (questionDetailsBottomBanner != null)
@@ -524,6 +680,39 @@ class _QuestionDetailsState extends State<QuestionDetails> {
   }
 
   // --- HELPER WIDGETS ---
+  Widget _buildAnswerBody(ThemeData theme) {
+    if (_isLoadingAnswer) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const ShimmerLines(lines: 4),
+          const SizedBox(height: 4),
+          Text('Getting the answer…', style: theme.textTheme.bodySmall),
+        ],
+      );
+    }
+    if (_answer.isNotEmpty) {
+      return MarkdownAnswer(data: _answer);
+    }
+    final message = _needsConsent
+        ? 'To see an AI answer for this question, please allow AiClopedia to use its AI service.'
+        : _answerFailed
+            ? "We couldn't load this answer right now. Check your connection and try again."
+            : 'No answer yet.';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(message, style: theme.textTheme.bodyMedium),
+        const SizedBox(height: 12),
+        FilledButton.icon(
+          onPressed: () => _getAnswer(userAsked: true),
+          icon: const Icon(Icons.refresh_rounded),
+          label: Text(_needsConsent ? 'Get the answer' : 'Try again'),
+        ),
+      ],
+    );
+  }
+
   Widget _buildGlassCard(BuildContext context, {required Widget child}) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
@@ -574,8 +763,10 @@ class _QuestionDetailsState extends State<QuestionDetails> {
           const SizedBox(height: 8),
           _buildMetadataRow(theme, icon: Icons.location_on_outlined, label: 'Location', value: question.city),
           const SizedBox(height: 8),
-          _buildMetadataRow(theme, icon: Icons.person_outline, label: 'Gender', value: question.gender),
-          const SizedBox(height: 8),
+          if (question.gender.isNotEmpty && question.gender != 'Not specified') ...[
+            _buildMetadataRow(theme, icon: Icons.person_outline, label: 'Gender', value: question.gender),
+            const SizedBox(height: 8),
+          ],
           _buildMetadataRow(theme, icon: Icons.access_time, label: 'Time', value: timeago.format(question.timestamp)),
           const SizedBox(height: 8),
           _buildMetadataRow(

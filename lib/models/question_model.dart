@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../services/answer_utils.dart';
+
 class Question {
   final String userId;
   final String questionId;
@@ -57,4 +59,24 @@ class Question {
       isPublic: json['isPublic'] ?? true,
     );
   }
+
+  Question copyWith({String? answer, String? imageUrl}) {
+    return Question(
+      userId: userId,
+      nickname: nickname,
+      city: city,
+      gender: gender,
+      question: question,
+      answer: answer ?? this.answer,
+      imageUrl: imageUrl ?? this.imageUrl,
+      thumbsUpCount: thumbsUpCount,
+      thumbsDownCount: thumbsDownCount,
+      timestamp: timestamp,
+      isFeatured: isFeatured,
+      questionId: questionId,
+      isPublic: isPublic,
+    );
+  }
+
+  bool get hasUsableAnswer => AnswerUtils.isUsable(answer);
 }
