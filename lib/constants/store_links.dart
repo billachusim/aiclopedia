@@ -8,7 +8,7 @@ class StoreLinks {
       'https://play.google.com/store/apps/details?id=com.socialfaculty.AiClopedia';
 
   /// Apple ID of the App Store record (numbers only).
-  static const String appStoreId = '';
+  static const String appStoreId = '6447000971';
 
   static String get appStoreUrl => appStoreId.isEmpty
       ? playUrl
